@@ -1,0 +1,6 @@
+.ai/runtime/
+.ai/memory/logs/
+.ai/project.json
+.git/
+node_modules/
+*.log

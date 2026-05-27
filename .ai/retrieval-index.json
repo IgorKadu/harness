@@ -1,0 +1,290 @@
+{
+  "$schema": "./retrieval-index.schema.json",
+  "version": "1.0.0",
+  "updated": "2026-05-26",
+  "description": "Mapa intenção/keyword → ≤5 arquivos. Roteamento determinístico, consumido por bin/os.mjs. Cada rota respeita o teto de 5 paths (invariante de contexto, ADR-0022).",
+  "budget": {
+    "core_token_cap": 600,
+    "state_of_world_token_cap": 1200,
+    "working_set_token_cap": 15000,
+    "max_files_per_route": 5
+  },
+  "always": [
+    ".ai/CONSTITUTION.md",
+    ".ai/memory/state-of-world.md"
+  ],
+  "routes": [
+    {
+      "id": "bug",
+      "triggers": [
+        "bug",
+        "erro",
+        "error",
+        "falha",
+        "crash",
+        "não funciona",
+        "nao funciona",
+        "stacktrace",
+        "exception",
+        "quebrou"
+      ],
+      "load": [
+        ".ai/knowledge/tools/debugging.md",
+        ".ai/memory/logs/errors-log.md"
+      ]
+    },
+    {
+      "id": "performance",
+      "triggers": [
+        "lento",
+        "slow",
+        "performance",
+        "latência",
+        "latencia",
+        "p95",
+        "p99",
+        "gargalo",
+        "bottleneck",
+        "otimizar",
+        "optimize"
+      ],
+      "load": [
+        ".ai/knowledge/skills/performance.md",
+        ".ai/knowledge/skills/scalability.md"
+      ]
+    },
+    {
+      "id": "seguranca",
+      "triggers": [
+        "segurança",
+        "seguranca",
+        "security",
+        "auth",
+        "autenticação",
+        "autenticacao",
+        "senha",
+        "password",
+        "token",
+        "xss",
+        "csrf",
+        "sql injection",
+        "vulnerab",
+        "cve",
+        "pii",
+        "lgpd",
+        "gdpr"
+      ],
+      "load": [
+        ".ai/knowledge/skills/security.md"
+      ]
+    },
+    {
+      "id": "backend",
+      "triggers": [
+        "endpoint",
+        "api",
+        "rest",
+        "graphql",
+        "controller",
+        "route",
+        "rota",
+        "webhook",
+        "middleware",
+        "validação",
+        "validacao"
+      ],
+      "load": [
+        ".ai/knowledge/skills/backend-engineering.md"
+      ]
+    },
+    {
+      "id": "frontend",
+      "triggers": [
+        "ui",
+        "ux",
+        "component",
+        "componente",
+        "react",
+        "vue",
+        "svelte",
+        "form",
+        "css",
+        "style",
+        "acessibilidade",
+        "a11y"
+      ],
+      "load": [
+        ".ai/knowledge/skills/frontend-engineering.md"
+      ]
+    },
+    {
+      "id": "database",
+      "triggers": [
+        "db",
+        "database",
+        "banco",
+        "sql",
+        "query",
+        "migration",
+        "schema",
+        "índice",
+        "indice",
+        "index",
+        "postgres",
+        "mysql",
+        "mongo"
+      ],
+      "load": [
+        ".ai/knowledge/skills/database-design.md"
+      ]
+    },
+    {
+      "id": "testes",
+      "triggers": [
+        "teste",
+        "test",
+        "tdd",
+        "unit",
+        "e2e",
+        "integration",
+        "mock",
+        "cobertura",
+        "coverage"
+      ],
+      "load": [
+        ".ai/knowledge/skills/testing.md"
+      ]
+    },
+    {
+      "id": "arquitetura",
+      "triggers": [
+        "arquitetura",
+        "architecture",
+        "design",
+        "padrão",
+        "padrao",
+        "pattern",
+        "clean",
+        "hexagonal",
+        "microserviço",
+        "microservico",
+        "microservice",
+        "monorepo",
+        "boundaries"
+      ],
+      "load": [
+        ".ai/knowledge/skills/architecture-design.md",
+        ".ai/memory/decisions-index.md"
+      ]
+    },
+    {
+      "id": "escalabilidade",
+      "triggers": [
+        "escalar",
+        "scale",
+        "scaling",
+        "tráfego",
+        "trafego",
+        "traffic",
+        "sharding",
+        "replicação",
+        "replicacao",
+        "fila",
+        "queue"
+      ],
+      "load": [
+        ".ai/knowledge/skills/scalability.md"
+      ]
+    },
+    {
+      "id": "dependencias",
+      "triggers": [
+        "dependência",
+        "dependencia",
+        "dependency",
+        "npm",
+        "pip",
+        "cargo",
+        "pacote",
+        "package",
+        "upgrade",
+        "atualizar lib"
+      ],
+      "load": [
+        ".ai/knowledge/tools/dependency-analysis.md"
+      ]
+    },
+    {
+      "id": "pesquisa-externa",
+      "triggers": [
+        "documentação",
+        "documentacao",
+        "docs",
+        "latest",
+        "recente",
+        "mudou",
+        "versão nova",
+        "versao nova",
+        "changelog"
+      ],
+      "load": [
+        ".ai/knowledge/tools/internet-research.md"
+      ]
+    },
+    {
+      "id": "mcp-tooling",
+      "triggers": [
+        "mcp",
+        "tool",
+        "ferramenta",
+        "automação",
+        "automacao",
+        "browser",
+        "chrome",
+        "computer-use"
+      ],
+      "load": [
+        ".ai/knowledge/tools/mcp-discovery.md"
+      ]
+    },
+    {
+      "id": "decisao",
+      "triggers": [
+        "decisão",
+        "decisao",
+        "decision",
+        "adr",
+        "escolher entre",
+        "optar por",
+        "trade-off",
+        "tradeoff"
+      ],
+      "load": [
+        ".ai/memory/decisions-index.md",
+        ".ai/specs/ADR/_TEMPLATE.md"
+      ]
+    },
+    {
+      "id": "bootstrap",
+      "triggers": [
+        "iniciar projeto",
+        "novo projeto",
+        "new project",
+        "projeto existente",
+        "existing project",
+        "onboarding",
+        "começar",
+        "comecar",
+        "setup inicial",
+        "init"
+      ],
+      "load": [
+        ".ai/bootstrap/questions.json"
+      ]
+    }
+  ],
+  "fallback": {
+    "description": "Nenhum trigger casou. Carregar só `always` e pedir uma palavra de classificação ao usuário.",
+    "load": []
+  }
+}

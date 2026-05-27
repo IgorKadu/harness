@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "description": "Banco de perguntas que o Harness serve a LLM no onboarding. A LLM conduz com o usuario.",
+  "new": [
+    { "id": "goal", "q": "Qual o objetivo central do projeto? O que ele resolve e para quem?" },
+    { "id": "kind", "q": "Que tipo de projeto e? (web app, API/servico, CLI, lib, mobile, automacao, outro)" },
+    { "id": "stack", "q": "Tem stack/linguagem preferida ou restricao tecnica? (ou deixo recomendar)" },
+    { "id": "scope", "q": "Qual o escopo do primeiro marco (MVP)? O que entra e o que NAO entra agora?" },
+    { "id": "constraints", "q": "Restricoes importantes? (prazo, orcamento, conformidade, integracoes obrigatorias)" },
+    { "id": "done", "q": "Como saberemos que o projeto/marco esta 'pronto'? Criterio de conclusao." }
+  ],
+  "existing": [
+    { "id": "confirm_stack", "q": "Detectei a stack/estrutura a seguir — esta correta? Algo a corrigir?" },
+    { "id": "current_goal", "q": "Qual o objetivo daqui pra frente? O que vamos fazer a partir deste ponto?" },
+    { "id": "dont_touch", "q": "O que NAO devemos mexer? (areas sensiveis, codigo legado intocavel, contratos)" },
+    { "id": "known_debt", "q": "Ha dividas tecnicas ou problemas conhecidos que eu deva registrar?" },
+    { "id": "next_milestone", "q": "Qual o proximo marco concreto e o criterio de 'pronto' dele?" }
+  ]
+}

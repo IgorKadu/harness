@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Harness: doctor", "type": "shell", "command": "node bin/os.mjs doctor", "problemMatcher": [] },
+    { "label": "Harness: brief",  "type": "shell", "command": "node bin/os.mjs brief",  "problemMatcher": [] },
+    { "label": "Harness: scan",   "type": "shell", "command": "node bin/os.mjs scan",   "problemMatcher": [] },
+    { "label": "Harness: sync",   "type": "shell", "command": "node bin/os.mjs sync",   "problemMatcher": [] },
+    { "label": "Harness: work",   "type": "shell", "command": "node bin/os.mjs work \"${input:intent}\"", "problemMatcher": [] }
+  ],
+  "inputs": [
+    { "id": "intent", "type": "promptString", "description": "Intencao da tarefa (os work)" }
+  ]
+}

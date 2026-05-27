@@ -1,0 +1,167 @@
+# Harness — Lean AI OS
+
+**A ferramenta que ajuda a criar outras ferramentas.** Uma camada de inteligência entre você, a LLM e o seu projeto — para que o desenvolvimento não trave conforme a complexidade cresce.
+
+Harness é a implementação de referência de um *AI Operating System* no modelo **Lean / Retrieval-First**: a mesma tese do que já existe por aí — *"a inteligência está na estrutura, não no modelo"* — mas com o vetor de escala invertido. Em vez de uma enciclopédia que a LLM **carrega** (e que entope o contexto), é uma biblioteca que a LLM **consulta**.
+
+---
+
+## O problema que ele resolve
+
+Assistentes de IA degradam conforme o projeto cresce: o contexto enche, a atenção se dilui, e o desenvolvimento "trava" no nível médio/avançado. A causa-raiz é que a maioria dos frameworks combate o limite de contexto **adicionando estrutura que consome o próprio contexto**.
+
+### A invariante (a regra que rege tudo)
+> **O custo de contexto de uma tarefa é função da tarefa, não do tamanho do projeto.**
+> Um projeto 10× maior não custa 10× mais tokens por tarefa. Não coube no orçamento → **decompõe a tarefa**.
+
+Resultado medido: o CORE sempre-ligado fica em **~1k tokens** (a referência anterior media ~9–11k); cada tarefa recupera só os ≤5 arquivos que importam.
+
+---
+
+## Instalação (1 comando)
+
+> Requisito único: **Node.js ≥ 18**. Zero dependências de runtime.
+
+**Em um projeto novo ou existente** (após o pacote estar publicado no npm):
+
+```bash
+npx @igorkadu/harness scaffold .
+```
+
+Isso instala, no diretório atual: o motor (`src/` + `bin/` + `server/`), o `.ai/` (CORE, conhecimento, memória fresca), e os stubs de configuração para Claude Code, Antigravity e VSCode. Use `--force` para sobrescrever.
+
+**Ou via git (enquanto o npm não está publicado):**
+
+```bash
+git clone https://github.com/IgorKadu/harness   # repo a ser criado
+cd harness
+node bin/os.mjs doctor                            # valida a integridade
+```
+
+Depois de instalar, **reinicie a IDE** (servidores MCP só conectam no boot do processo) e rode:
+
+```bash
+node bin/os.mjs init     # onboarding guiado (detecta projeto novo vs. existente)
+node bin/os.mjs scan     # varre o código e monta o code-map
+```
+
+---
+
+## Como você usa no dia a dia (autonomia — ADR-0026)
+
+**Você não precisa decorar comando nenhum.** O modelo é *autônomo por padrão*: você conversa em linguagem natural com a LLM, e é a **LLM** que aciona os mecanismos do Harness no momento certo (via MCP). Os comandos existem como **atalho opcional**, não como obrigação.
+
+As **únicas** pausas deliberadas — as "travas boas" — são duas:
+1. **Avançar de fase** (`discovery → execution → stabilization`): você decide quando o projeto muda de etapa.
+2. **Aprovar o plano** de uma tarefa grande (`complex`): a LLM propõe, você confirma.
+
+Isso garante **início, meio e fim** sem loop infinito — e sem você orquestrar o OS manualmente.
+
+### O ciclo de vida (e como o diálogo muda)
+O Harness calibra **quanto a LLM questiona vs. executa** conforme a fase:
+
+| Fase | Postura da LLM | Foco |
+|---|---|---|
+| `discovery` | questiona **muito** | alinhar objetivo, escopo e direção antes de executar |
+| `execution` | questiona o **pontual** | construir, alinhado ao rumo |
+| `stabilization` | **sugestiva**, baixa fricção | concluir, estabilizar, evitar escopo novo |
+
+Muitos diálogos no começo, pontuais no meio, conclusivos no fim. Melhorias podem ocorrer em qualquer fase.
+
+---
+
+## Configuração por ambiente
+
+Os stubs abaixo já vêm prontos no scaffold. Todos apontam para o **mesmo binário** (`bin/os.mjs mcp`), que sobe o servidor MCP.
+
+### Claude Code — `.claude/settings.json`
+MCP nativo + slash commands (`/init`, `/sync`, `/work` em `.claude/commands/`). Reinicie o Claude Code após instalar.
+```json
+{ "mcpServers": { "harness": { "command": "node", "args": ["${CLAUDE_PROJECT_DIR}/bin/os.mjs", "mcp"] } } }
+```
+
+### Antigravity — `.gemini/settings.json`
+MCP nativo + workflows em `.agents/workflows/`. Reinicie a IDE.
+```json
+{ "mcpServers": { "harness": { "command": "node", "args": ["${workspaceFolder}/bin/os.mjs", "mcp"] } } }
+```
+
+### VSCode — `.vscode/tasks.json`
+O VSCode "puro" não tem agente/MCP nativo. Por ora, use **Tasks** (`Ctrl+Shift+P → Run Task → Harness: …`) para `doctor/brief/scan/sync/work`. Um **cockpit dedicado** (extensão própria) está planejado como fase posterior. Se você usa um agente no VSCode (Cline/Continue/Copilot com MCP), aponte-o para `node bin/os.mjs mcp`.
+
+---
+
+## As 14 ferramentas (tools MCP = espelho do CLI)
+
+A LLM chama estas; você vê os equivalentes no CLI (`node bin/os.mjs <cmd>`).
+
+| Tool / comando | Para quê |
+|---|---|
+| `os_read_core` / `read-core` | Carrega o CORE (CONSTITUTION + state-of-world) numa chamada |
+| `os_brief` / `brief` | Situação + postura de diálogo (a LLM lê antes de falar com você) |
+| `os_capabilities` / `caps` | Navegação interna: opções disponíveis + ação recomendada |
+| `os_work` / `work "<intenção>"` | Recupera ≤5 arquivos + orçamento + candidatos de código |
+| `os_route` / `route` | Só o roteamento |
+| `os_init` / `init [new\|existing]` | Onboarding guiado (perguntas para conduzir) |
+| `os_phase` / `phase [fase]` | Vê/avança a fase (a trava boa) |
+| `os_scan` / `scan` | Varre o código → `code-map` consultável |
+| `os_find` / `find "<termo>"` | Acha arquivos/símbolos no code-map |
+| `os_recall` / `recall "<termo>"` | Grep nos logs sem carregar inteiro |
+| `os_remember` / `remember <log> "<txt>"` | Registra na memória (append-only) |
+| `os_sync` / `sync` | Reescreve a memória quente + re-escaneia se preciso |
+| `os_doctor` / `doctor` | Integridade do índice/CORE/fase |
+| `os_tokens` / `tokens` | Mede o CORE contra o teto |
+
+---
+
+## Arquitetura
+
+**Um cérebro, várias bocas (ADR-0023).** Toda a lógica vive num motor único; as interfaces são adaptadores finos que o importam e **nunca duplicam lógica**.
+
+```
+Harness/
+├── src/engine.mjs          # MOTOR — única fonte de lógica (zero-dep)
+├── bin/os.mjs              # boca CLI (+ comando 'mcp' e 'scaffold')
+├── server/mcp.mjs          # boca MCP (stdio, 14 tools)
+├── .claude/ .gemini/ .vscode/ .agents/   # configs por ambiente
+└── .ai/
+    ├── CONSTITUTION.md          # CORE sempre-ligado (~600 tk)
+    ├── retrieval-index.json     # rotas intenção→≤5 arquivos (+ schema)
+    ├── memory/
+    │   ├── state-of-world.md    # quente, reescrito (não incha)
+    │   ├── decisions-index.md   # 1 linha por ADR
+    │   └── logs/                # append-only, só consultado por grep
+    ├── knowledge/               # skills/tools/regras (recuperados sob demanda)
+    ├── bootstrap/questions.json # banco de perguntas do onboarding
+    └── specs/ADR/               # decisões arquiteturais
+```
+
+**Camadas de contexto:** CORE (sempre, ~1k tk) → recuperado por tarefa (≤5 arquivos via índice) → código sob demanda (grep no momento, guiado pelos candidatos do `scan`). Nada é pré-carregado "por garantia".
+
+### Decisões (ADRs)
+- **0022** — Lean / Retrieval-First (fundamento)
+- **0023** — Um cérebro, várias bocas (motor + adaptadores)
+- **0024** — Comunicação adaptativa + navegação interna
+- **0025** — Varredura zero-dep + code-map consultável
+- **0026** — Operação autônoma (comandos como atalho, não trava)
+
+---
+
+## O que o torna diferente
+
+Harness não aposta numa técnica só — combina o que funciona, enxuto: **retrieval-first** (contra o limite de contexto), **memória compilada** (estado reescrito + histórico append-only consultável), **ciclo de vida com postura adaptativa** (início/meio/fim sem loop), **navegação interna** (o OS informa suas opções à LLM) e **varredura zero-dep** (acompanha o crescimento do código). Tudo determinístico, independente da LLM e do nível do usuário.
+
+---
+
+## Desenvolvimento (trabalhar NO Harness)
+
+```bash
+node bin/os.mjs doctor      # integridade
+node bin/os.mjs scan        # re-mapeia o código
+node bin/os.mjs sync        # checkpoint da memória quente
+```
+
+Antes de abrir mudanças: leia `.ai/CONSTITUTION.md` e os ADRs em `.ai/specs/ADR/`.
+
+## Licença
+MIT — use, faça fork, publique.

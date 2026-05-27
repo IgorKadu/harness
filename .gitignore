@@ -1,0 +1,4 @@
+node_modules/
+.ai/runtime/
+*.log
+.DS_Store

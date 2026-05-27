@@ -1,0 +1,6 @@
+{
+  "phase": "discovery",
+  "phase_set_at": "2026-05-26T20:19:36.240Z",
+  "created": "2026-05-26T00:00:00.000Z",
+  "note": "Estado de fase do projeto. Machine-managed (os phase). Fases: discovery -> execution -> stabilization."
+}

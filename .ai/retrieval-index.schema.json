@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Retrieval Index",
+  "description": "Mapa determinístico intenção→arquivos. Consumido por bin/os.mjs. Invariante: ≤ max_files_per_route por rota.",
+  "type": "object",
+  "required": ["version", "budget", "always", "routes"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "string" },
+    "updated": { "type": "string" },
+    "description": { "type": "string" },
+    "budget": {
+      "type": "object",
+      "required": ["core_token_cap", "working_set_token_cap", "max_files_per_route"],
+      "properties": {
+        "core_token_cap": { "type": "integer", "minimum": 1 },
+        "state_of_world_token_cap": { "type": "integer", "minimum": 1 },
+        "working_set_token_cap": { "type": "integer", "minimum": 1 },
+        "max_files_per_route": { "type": "integer", "minimum": 1, "maximum": 5 }
+      }
+    },
+    "always": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Arquivos do CORE carregados em toda tarefa. Manter mínimo."
+    },
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "triggers", "load"],
+        "properties": {
+          "id": { "type": "string" },
+          "triggers": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "load": { "type": "array", "items": { "type": "string" }, "maxItems": 5 }
+        }
+      }
+    },
+    "fallback": {
+      "type": "object",
+      "properties": {
+        "description": { "type": "string" },
+        "load": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
