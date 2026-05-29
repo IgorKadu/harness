@@ -1,0 +1,27 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ matrix.node }}' }
+      - name: Syntax check
+        run: |
+          node -c src/engine.mjs
+          node -c server/mcp.mjs
+          node -c bin/os.mjs
+          node -c bin/scaffold.mjs
+          node -c extension/extension.js
+      - name: Doctor
+        run: node bin/os.mjs doctor
+      - name: Orchestrate smoke test
+        run: node bin/os.mjs next "teste de ci" --json > /dev/null && echo ok
+      - name: Scaffold smoke test
+        run: node bin/scaffold.mjs /tmp/scaff-ci && cd /tmp/scaff-ci && node bin/os.mjs doctor

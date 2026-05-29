@@ -1,9 +1,10 @@
 {
-  "mcpServers": {
+  "servers": {
     "harness": {
+      "type": "stdio",
       "command": "node",
       "args": [
-        "${workspaceFolder}/bin/os.mjs",
+        "bin/os.mjs",
         "mcp"
       ]
     }

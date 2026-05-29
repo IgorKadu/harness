@@ -9,7 +9,7 @@ O usuário conversa normalmente; **você** aciona o Harness sozinho. Não exija 
 
 ## Protocolo (toda mensagem)
 1. Leia **só** `.ai/CONSTITUTION.md` + `.ai/memory/state-of-world.md` (o CORE — ~1k tokens) — ou chame `os_brief`.
-2. Para uma tarefa, chame `os_work "<intenção>"` (uma chamada devolve postura + ≤5 arquivos + candidatos de código + orçamento). **Não leia nada por garantia.**
+2. Para uma tarefa, prefira `os_orchestrate "<intenção>"` (ADR-0027): uma chamada devolve classificação + ≤5 arquivos + perguntas guiadas + decomposição + `actions`/`awaiting`. Siga o `awaiting` (só pausa em `user_answers`/`user_confirm_plan`). Use `os_work` quando quiser só o working-set, `os_session` para conduzir a conversa com o usuário e `os_handoff` para entregar a tarefa já definida (objetivo/escopo/não-fazer/onde/como). **Não leia nada por garantia.**
 3. **Siga a postura da fase** que veio no brief/work (discovery questiona muito; execution executa; stabilization conclui).
 4. Contexto de código vem de grep/símbolo no momento (use os candidatos do `os_work`/`os_find`).
 5. Classifique (`trivial | simple | complex`); em `complex` proponha plano e espere OK.
@@ -44,7 +44,4 @@ Toda a lógica vive em `src/engine.mjs`. Você aciona pelo caminho disponível:
 - `node bin/os.mjs sync` — reescreve o state-of-world + mede.
 
 ## O que NÃO carregar
-- `.ai/memory/logs/**` nunca é lido inteiro — só `grep`.
-- `.ai/knowledge/**` e ADRs só quando o índice apontar ou o usuário citar.
-
-Fundamento completo: `.ai/specs/ADR/ADR-0022-lean-retrieval-first-context.md`.
+- `.ai/memory/logs/**` nunca é lido inteiro — só 

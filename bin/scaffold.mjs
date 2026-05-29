@@ -32,9 +32,10 @@ export function scaffold(targetDir, { force = false } = {}) {
 
   // 3. Configs por IDE
   copy(".claude"); copy(".gemini"); copy(".vscode"); copy(".agents");
+  copy("extension"); // boca extra: interface visual (ADR-0027)
 
   // 4. Entry docs + meta
-  copy("CLAUDE.md"); copy("AGENTS.md"); copy(".gitignore");
+  copy("CLAUDE.md"); copy("AGENTS.md"); copy("CONNECT.md"); copy(".gitignore");
 
   // 5. Memoria FRESCA (nao copiar a do Harness)
   mkdirSync(join(aiDst, "memory", "logs"), { recursive: true });

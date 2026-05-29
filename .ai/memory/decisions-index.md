@@ -10,3 +10,6 @@
 | ADR-0024 | Comunicação adaptativa + navegação interna (protocolo LLM↔Harness) | proposed |
 | ADR-0025 | Analisador de varredura zero-dep + code-map consultável | proposed |
 | ADR-0026 | Operação autônoma: comandos como atalho, não trava | proposed |
+| ADR-0027 | Camada de orquestração autoexecutável (pacote de interação para chat + extensão) | aceito |
+| ADR-0028 | Handoff estruturado + memória de sessão (chat-orquestrador) | aceito |
+| ADR-0029 | Evolução do orquestrador: métricas, rotas, subtarefas, templates, LLM opcional, web | aceito |

@@ -1,0 +1,82 @@
+{
+  "name": "harness-lean-ai-os",
+  "displayName": "Harness — Lean AI OS",
+  "description": "Chat-orquestrador do Harness: conversa com voce (orienta, pergunta, recomenda), estrutura tudo e entrega a LLM um handoff pronto (objetivo, escopo, o que NAO fazer, onde esta o codigo, como e porque). Mesmo motor do MCP.",
+  "version": "0.3.0",
+  "publisher": "igorkadu",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "llm",
+    "mcp",
+    "orchestration",
+    "context",
+    "retrieval"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IgorKadu/harness.git"
+  },
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "harness.openPanel",
+        "title": "Harness: Abrir chat-orquestrador"
+      },
+      {
+        "command": "harness.orchestrate",
+        "title": "Harness: Orquestrar (focar painel)"
+      },
+      {
+        "command": "harness.brief",
+        "title": "Harness: Brief (situacao + postura)"
+      },
+      {
+        "command": "harness.doctor",
+        "title": "Harness: Doctor (integridade)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "harness",
+          "title": "Harness",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "harness": [
+        {
+          "id": "harness.panel",
+          "name": "Orquestrador",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Harness",
+      "properties": {
+        "harness.cliPath": {
+          "type": "string",
+          "default": "bin/os.mjs",
+          "description": "Caminho relativo (ao workspace) para o CLI do Harness."
+        },
+        "harness.node": {
+          "type": "string",
+          "default": "node",
+          "description": "Executavel do Node usado para rodar o Harness."
+        }
+      }
+    }
+  }
+}

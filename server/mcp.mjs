@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // Harness — Lean AI OS · servidor MCP (a "boca" MCP do motor — ADR-0023/0024)
 // Transporte: stdio, JSON-RPC 2.0 newline-delimited (protocolo MCP 2024-11-05). Zero-dep.
-// NAO contem logica: importa src/engine.mjs e expoe 12 tools finas.
+// NAO contem logica: importa src/engine.mjs e expoe as tools finas.
 
 import * as engine from "../src/engine.mjs";
 
 const PROTOCOL = "2024-11-05";
-const SERVER = { name: "harness-lean-ai-os", version: "0.1.0" };
+const SERVER = { name: "harness-lean-ai-os", version: "0.3.0" };
 const J = (o) => JSON.stringify(o, null, 2);
 
 const TOOLS = [
@@ -27,6 +27,26 @@ const TOOLS = [
     description: "Navegacao interna: o Harness informa as opcoes disponiveis agora + a acao recomendada. A LLM escolhe.",
     inputSchema: { type: "object", properties: {} },
     run: () => J(engine.capabilities()),
+  },
+  {
+    name: "os_orchestrate",
+    description: "ORQUESTRADOR (ADR-0027): dada a intencao, devolve um pacote de interacao estruturado — classificacao, contexto, perguntas guiadas, sugestoes, acoes a executar e o que esta aguardando (awaiting). Use como passo unico para conduzir o fluxo em camadas com baixo custo. Reenvie com 'answers' e/ou 'approved' quando o usuario responder/confirmar.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        intent: { type: "string" },
+        answers: { type: "object", description: "respostas do usuario as perguntas guiadas (opcional)" },
+        approved: { type: "boolean", description: "true quando o usuario aprovou o plano de tarefa complexa" },
+      },
+      required: ["intent"],
+    },
+    run: ({ intent, answers, approved }) => J(engine.orchestrate(intent, { answers: answers || null, approved: !!approved })),
+  },
+  {
+    name: "os_decompose",
+    description: "Quando uma tarefa estoura o orcamento de contexto, devolve subtarefas menores (invariante ADR-0022). Use antes de executar tarefas grandes.",
+    inputSchema: { type: "object", properties: { intent: { type: "string" } }, required: ["intent"] },
+    run: ({ intent }) => J(engine.decompose(intent)),
   },
   {
     name: "os_work",
@@ -126,6 +146,58 @@ const TOOLS = [
     description: "Busca arquivos/simbolos no code-map por termo. Devolve candidatos (caminhos) para a LLM ler sob demanda. Requer os_scan antes.",
     inputSchema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
     run: ({ query }) => J(engine.searchCode(query)),
+  },
+  {
+    name: "os_handoff",
+    description: "ENTREGA p/ a LLM (ADR-0028): spec estruturada da tarefa — objetivo, escopo, o que NAO fazer, pasta/arquivo alvo, onde esta o codigo, como e porque. Param 'answers' opcional (objetivo/escopo/etc). 'render'=true devolve markdown pronto p/ colar.",
+    inputSchema: { type: "object", properties: { intent: { type: "string" }, answers: { type: "object" }, render: { type: "boolean" } }, required: ["intent"] },
+    run: ({ intent, answers, render }) => { const h = engine.handoff(intent, { answers: answers || {} }); return render ? engine.renderHandoff(h) : J(h); },
+  },
+  {
+    name: "os_session",
+    description: "Sessao de orquestracao persistente (ADR-0028): conduz a conversa e resume entre execucoes. action=start|answer|status|clear. start exige 'intent'; answer usa 'value' (resposta do usuario). Ao esgotar as perguntas, anexa o handoff.",
+    inputSchema: { type: "object", properties: { action: { type: "string", enum: ["start", "answer", "status", "resume", "clear"] }, intent: { type: "string" }, value: { type: "string" } }, required: ["action"] },
+    run: ({ action, intent, value }) => {
+      if (action === "start") return J(engine.startSession(intent));
+      if (action === "answer") return J(engine.answerSession(value || "", { intent }));
+      if (action === "resume") return J(engine.resumeSession());
+      if (action === "clear") return J(engine.clearSession());
+      return J(engine.loadSession() || { active: false });
+    },
+  },
+  {
+    name: "os_gaps",
+    description: "O QUE FALTA (ADR-0028): cruza code-map (smells), rotas e ausencia de testes para apontar lacunas concretas a endereçar. Requer os_scan para melhor precisao.",
+    inputSchema: { type: "object", properties: { intent: { type: "string" } }, required: ["intent"] },
+    run: ({ intent }) => J(engine.gaps(intent)),
+  },
+  {
+    name: "os_metrics",
+    description: "Metricas de economia de contexto (roadmap #9): CORE, projeto inteiro estimado e tokens poupados por tarefa vs baseline. Passe 'intent' para a economia da tarefa.",
+    inputSchema: { type: "object", properties: { intent: { type: "string" } } },
+    run: ({ intent }) => J(engine.metrics(intent || null)),
+  },
+  {
+    name: "os_suggest_routes",
+    description: "Aprendizado de rotas (roadmap #7): analisa o historico de intencoes e sugere novas rotas/triggers ausentes no indice.",
+    inputSchema: { type: "object", properties: {} },
+    run: () => J(engine.suggestRoutes()),
+  },
+  {
+    name: "os_subtasks",
+    description: "Subtarefas como sessoes-filhas (roadmap #6). action=spawn|status|done. spawn usa 'intent'; done usa 'id'.",
+    inputSchema: { type: "object", properties: { action: { type: "string", enum: ["spawn", "status", "done"] }, intent: { type: "string" }, id: { type: "string" } }, required: ["action"] },
+    run: ({ action, intent, id }) => {
+      if (action === "spawn") return J(engine.spawnSubsessions(intent));
+      if (action === "done") return J(engine.setSubStatus(id, "done"));
+      return J(engine.subStatus());
+    },
+  },
+  {
+    name: "os_template",
+    description: "Template de projeto (roadmap #10): seed de objetivo, primeiros passos, o que NAO fazer e triggers por tipo. kind=api|web|cli|lib.",
+    inputSchema: { type: "object", properties: { kind: { type: "string", enum: engine.TEMPLATE_KINDS } }, required: ["kind"] },
+    run: ({ kind }) => J(engine.template(kind)),
   },
 ];
 

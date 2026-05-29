@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // Harness — Lean AI OS · CLI (uma das "bocas" do motor — ADR-0023)
 // NAO contem logica de negocio: so renderiza src/engine.mjs no terminal.
-// Comandos: work route tokens doctor sync recall remember read-core brief caps phase init help
 
 import * as engine from "../src/engine.mjs";
+import { writeFileSync, mkdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 const C = {
   reset: "\x1b[0m", bold: "\x1b[1m", dim: "\x1b[2m",
@@ -49,6 +50,39 @@ function cmdWork(intent) {
   process.exit(ws.within ? 0 : 2);
 }
 
+function cmdOrchestrate(rest) {
+  const json = rest.includes("--json");
+  const approved = rest.includes("--approved") || rest.includes("--ok");
+  const intent = rest.filter((x) => !x.startsWith("--")).join(" ").trim();
+  if (!intent) die('uso: os next "<intencao>" [--json] [--approved]');
+  const pkt = engine.orchestrate(intent, { approved });
+  if (json) { console.log(JSON.stringify(pkt, null, 2)); return; }
+  console.log(color("bold", `\n=== Orquestracao: "${intent}" ===`));
+  console.log(color("dim", `Fase ${pkt.phase} (${pkt.maturity}) | classificacao: `) + color("yellow", pkt.classification));
+  const w = pkt.workingSet;
+  console.log(`Contexto: ${w.files.length} arquivo(s) ~${w.total}/${w.cap} tk  ${w.within ? color("green", "OK") : color("red", "ESTOUROU")}`);
+  if (pkt.questions.length) {
+    console.log(color("bold", "\nPerguntas guiadas (faca ao usuario):"));
+    pkt.questions.forEach((q, i) => console.log(`  ${i + 1}. ${q.q}  ${color("dim", "[" + q.id + "]")}`));
+  }
+  if (pkt.decomposition.needed) {
+    console.log(color("bold", `\nDecomposicao (${pkt.decomposition.reason}):`));
+    pkt.decomposition.subtasks.forEach((s) => console.log(`  - ${s.intent}  ${color("dim", "(" + s.basis + ")")}`));
+  }
+  if (pkt.suggestions.length) { console.log(color("bold", "\nSugestoes:")); pkt.suggestions.forEach((s) => console.log("  - " + s)); }
+  console.log(color("bold", "\nAcoes (na ordem):"));
+  pkt.actions.forEach((a) => console.log(`  -> ${color("cyan", a.step)} ${color("dim", "(" + a.tool + ")")} — ${a.why}`));
+  console.log(color("yellow", `\nAguardando: ${pkt.awaiting || "nada — pode executar"}`));
+}
+
+function cmdDecompose(intent) {
+  if (!intent) die('uso: os decompose "<intencao>"');
+  const d = engine.decompose(intent);
+  if (!d.needed) { console.log(color("green", `ok cabe no orcamento (${d.reason}) — nao precisa decompor.`)); return; }
+  console.log(color("bold", `\nDecomposicao (${d.reason}):`));
+  d.subtasks.forEach((s) => console.log(`  - ${s.intent}  ${color("dim", "(" + s.basis + ")")}`));
+}
+
 function cmdTokens() {
   const core = engine.measureCore();
   console.log(color("bold", "\n=== Medidor de tokens (CORE sempre-ligado) ==="));
@@ -58,7 +92,6 @@ function cmdTokens() {
   row("state-of-world.md", core.stateOfWorld);
   console.log(color("dim", "  ----"));
   console.log(`  CORE total carregado/mensagem: ~${core.total} tk`);
-  console.log(color("dim", "  (referencia: o CORE do StealthOS media ~9-11k tk — ADR-0022)"));
   if (!core.ok) { console.log(color("red", "\nx CORE acima do teto. Reduza antes de prosseguir.")); process.exit(2); }
   console.log(color("green", "\nok CORE dentro do orcamento."));
 }
@@ -157,28 +190,197 @@ function cmdFind(query) {
   r.hits.forEach((h) => console.log(`  -> ${h.path}  ${color("dim", "(" + h.lines + "L, " + h.lang + ", score " + h.score + ")")}`));
 }
 
-function cmdHelp() {
-  console.log(`
-${color("bold", "Harness — Lean AI OS")}  ${color("dim", "(ADR-0022/0023/0024 · retrieval-first)")}
+function cmdGaps(rest) {
+  const json = rest.includes("--json");
+  const intent = rest.filter((x) => !x.startsWith("--")).join(" ").trim();
+  if (!intent) die('uso: os gaps "<intencao>" [--json]');
+  const g = engine.gaps(intent);
+  if (json) { console.log(JSON.stringify(g, null, 2)); return; }
+  console.log(color("bold", "\nO que falta (" + g.count + "):"));
+  if (g.count === 0) console.log(color("dim", "  nada obvio — bom sinal."));
+  g.items.forEach((i) => console.log("  - " + color("yellow", i.kind) + ": " + i.path + color("dim", " (" + i.detail + ")")));
+}
 
+function cmdHandoff(rest) {
+
+  const json = rest.includes("--json");
+  const intent = rest.filter((x) => !x.startsWith("--")).join(" ").trim();
+  if (!intent) die('uso: os handoff "<intencao>" [--json]');
+  const h = engine.handoff(intent, {});
+  if (json) { console.log(JSON.stringify(h, null, 2)); return; }
+  console.log(engine.renderHandoff(h));
+}
+
+function cmdSession(rest) {
+  const action = rest[0];
+  const json = rest.includes("--json");
+  const args = rest.slice(1).filter((x) => !x.startsWith("--"));
+  const text = args.join(" ").trim();
+  let r;
+  if (action === "start") r = engine.startSession(text);
+  else if (action === "answer") r = engine.answerSession(text);
+  else if (action === "resume") r = engine.resumeSession();
+  else if (action === "note") r = engine.noteSession(text);
+  else if (action === "clear") r = engine.clearSession();
+  else if (action === "status" || !action) r = engine.loadSession() || { active: false };
+  else die("uso: os session <start|answer|status|resume|clear> [texto]");
+  if (json) { console.log(JSON.stringify(r, null, 2)); return; }
+  if (!r.active) { console.log(color("dim", "Nenhuma sessao ativa.")); return; }
+  const last = r.log && r.log.length ? r.log[r.log.length - 1] : null;
+  console.log(color("bold", "\nSessao " + r.id + " — \"" + r.intent + "\"  ") + color("dim", "[" + (r.awaiting || "ok") + "]"));
+  if (last) console.log(color("cyan", "Orquestrador: ") + last.text);
+  if (r.awaiting === "user_answers") console.log(color("dim", "-> responda com: os session answer \"<sua resposta>\""));
+  if (r.handoff) { console.log(color("green", "\nHandoff pronto:\n")); console.log(engine.renderHandoff(r.handoff)); }
+}
+
+function pkgVersion() {
+  try { return JSON.parse(engine.readIfExists(join(engine.ROOT, "package.json"))).version || "?"; }
+  catch { return "?"; }
+}
+
+function banner() {
+  const v = pkgVersion();
+  const cyan = (s) => color("cyan", s);
+  console.log("");
+  console.log(cyan("   ██   ██  █████  ██████  ███    ██ ███████ ███████ ███████"));
+  console.log(cyan("   ██   ██ ██   ██ ██   ██ ████   ██ ██      ██      ██     "));
+  console.log(cyan("   ███████ ███████ ██████  ██ ██  ██ █████   ███████ ███████"));
+  console.log(cyan("   ██   ██ ██   ██ ██   ██ ██  ██ ██ ██           ██      ██"));
+  console.log(cyan("   ██   ██ ██   ██ ██   ██ ██   ████ ███████ ███████ ███████"));
+  console.log("");
+  console.log(`   ${color("bold", "Harness — Lean AI OS")}  ${color("dim", "v" + v)}`);
+  console.log(`   ${color("dim", "Orquestrador entre voce e a LLM · contexto por tarefa, nao por projeto")}`);
+  console.log("");
+}
+
+const TARGETS = {
+  claude: { file: ".claude/settings.json", json: { mcpServers: { harness: { command: "node", args: ["${CLAUDE_PROJECT_DIR}/bin/os.mjs", "mcp"] } } } },
+  vscode: { file: ".vscode/mcp.json", json: { servers: { harness: { type: "stdio", command: "node", args: ["bin/os.mjs", "mcp"] } } } },
+  antigravity: { file: ".gemini/settings.json", json: { mcpServers: { harness: { command: "node", args: ["${workspaceFolder}/bin/os.mjs", "mcp"] } } } },
+  cursor: { file: ".cursor/mcp.json", json: { mcpServers: { harness: { command: "node", args: ["bin/os.mjs", "mcp"] } } } },
+  windsurf: { file: ".windsurf/mcp.json", json: { mcpServers: { harness: { command: "node", args: ["bin/os.mjs", "mcp"] } } } },
+};
+
+function cmdSetup() {
+  banner();
+  const here = engine.ROOT;
+  console.log(color("bold", "   Ambiente detectado:"));
+  const checks = [
+    [".claude", "Claude Code"],
+    [".vscode", "VSCode"],
+    [".gemini", "Antigravity/Gemini"],
+    [".cursor", "Cursor"],
+    [".windsurf", "Windsurf"],
+    ["extension", "Extensao (chat-orquestrador)"],
+  ];
+  for (const [dir, label] of checks) {
+    const ok = engine.readIfExists(join(here, dir, ".keep")) !== null || existsDir(join(here, dir));
+    console.log(`   ${ok ? color("green", "ok") : color("dim", "--")} ${label}  ${color("dim", dir)}`);
+  }
+  console.log("");
+  console.log(color("bold", "   Proximos passos:"));
+  console.log(`   1. ${color("cyan", "node bin/os.mjs install all")}   configura MCP p/ Claude Code, VSCode e Antigravity`);
+  console.log(`   2. ${color("cyan", "reinicie a IDE")}                 servidores MCP so conectam no boot`);
+  console.log(`   3. ${color("cyan", "node bin/os.mjs doctor")}         valida a integridade`);
+  console.log(`   4. ${color("cyan", "node bin/os.mjs init")}           onboarding guiado`);
+  console.log(`   ${color("dim", "Extensao VSCode: cd extension && vsce package -> Install from VSIX. Guia: CONNECT.md")}`);
+  console.log("");
+}
+
+function existsDir(p) { try { return statSync(p).isDirectory(); } catch { return false; } }
+
+function cmdInstall(rest) {
+  const target = (rest[0] || "all").toLowerCase();
+  const list = target === "all" ? Object.keys(TARGETS) : [target];
+  if (list.some((t) => !TARGETS[t])) die("alvo invalido. Use: claude | vscode | antigravity | all");
+  banner();
+  for (const t of list) {
+    const { file, json } = TARGETS[t];
+    const abs = join(engine.ROOT, file);
+    mkdirSync(join(engine.ROOT, file.split("/")[0]), { recursive: true });
+    writeFileSync(abs, JSON.stringify(json, null, 2) + "\n", "utf8");
+    console.log(`   ${color("green", "ok")} ${t.padEnd(12)} -> ${file}`);
+  }
+  console.log(color("dim", "\n   Reinicie a IDE para conectar o MCP. Detalhes em CONNECT.md.\n"));
+}
+
+function cmdSubtasks(rest) {
+  const action = rest[0];
+  const text = rest.slice(1).join(" ").trim();
+  if (action === "spawn") { const r = engine.spawnSubsessions(text); console.log(color("bold", "\nSubtarefas (" + r.items.length + "):")); r.items.forEach((s) => console.log("  " + color("cyan", s.id) + " [" + s.status + "] " + s.intent)); return; }
+  if (action === "done") { const r = engine.setSubStatus(text, "done"); console.log(color("green", "ok " + text + " concluida — progresso " + r.progress.pct + "%")); return; }
+  const c = engine.subStatus();
+  if (!c.items || !c.items.length) { console.log(color("dim", "Nenhuma subtarefa. Use: os subtasks spawn \"<intencao>\"")); return; }
+  console.log(color("bold", "\nSubtarefas de: " + c.parent));
+  c.items.forEach((s) => console.log("  " + (s.status === "done" ? color("green", "ok") : color("dim", "--")) + " " + color("cyan", s.id) + " " + s.intent));
+  if (c.progress) console.log(color("dim", "  progresso: " + c.progress.done + "/" + c.progress.total + " (" + c.progress.pct + "%)"));
+}
+
+function cmdRoutes() {
+  const r = engine.suggestRoutes();
+  console.log(color("bold", "\nRotas sugeridas (a partir do historico, " + r.suggestions.length + "):"));
+  if (!r.suggestions.length) console.log(color("dim", "  nada recorrente ainda."));
+  r.suggestions.forEach((s) => console.log("  - " + color("cyan", s.term) + color("dim", " (x" + s.count + ") " + s.hint)));
+}
+
+function cmdMetrics(rest) {
+  const intent = rest.filter((x) => !x.startsWith("--")).join(" ").trim();
+  const m = engine.metrics(intent || null);
+  console.log(color("bold", "\n=== Metricas de economia ==="));
+  console.log("  CORE: ~" + m.coreTokens + " tk");
+  if (m.projectTokens != null) console.log("  Projeto inteiro (estimado): ~" + m.projectTokens + " tk");
+  if (m.intent) {
+    console.log("  Working-set da tarefa: ~" + m.workingSetTokens + " tk");
+    console.log("  Por tarefa (CORE+ws): ~" + m.perTask + " tk vs baseline ~" + m.baseline + " tk");
+    console.log(color("green", "  Economia: ~" + m.saved + " tk (" + m.savedPct + "%)"));
+  } else if (m.note) console.log(color("dim", "  " + m.note));
+}
+
+function cmdTemplate(rest) {
+  const kind = (rest[0] || "").toLowerCase();
+  const t = engine.template(kind);
+  if (t.error) { console.log(color("yellow", "tipos: " + t.kinds.join(" | "))); return; }
+  console.log(color("bold", "\nTemplate '" + t.kind + "' — " + t.objetivo));
+  console.log(color("bold", "  Primeiros passos:")); t.primeiros.forEach((p) => console.log("   - " + p));
+  console.log(color("bold", "  Nao fazer agora:")); t.nao_fazer.forEach((p) => console.log("   - " + p));
+  console.log(color("dim", "  triggers sugeridos p/ rotas: " + t.rotas.join(", ")));
+}
+
+function cmdHelp() {
+
+
+  console.log(`
+${color("bold", "Harness — Lean AI OS")}  ${color("dim", "(retrieval-first · ADR-0022..0029)")}
+
+${color("bold", "Orquestracao (ADR-0027):")}
+  ${color("cyan", 'next "<intencao>"')}        pacote de interacao: classifica + perguntas + acoes (use --json p/ a extensao)
+  ${color("cyan", 'decompose "<intencao>"')}   quebra tarefa grande em subtarefas
+  ${color("cyan", 'handoff "<intencao>"')}     gera a spec estruturada p/ a LLM (objetivo/escopo/nao-fazer/onde/como)
+  ${color("cyan", 'gaps "<intencao>"')}        aponta o que falta (smells, sem teste, arquivo ausente)
+  ${color("cyan", "session <start|answer|status|clear>")}  conversa do orquestrador (persiste e resume)
 ${color("bold", "Tarefa:")}
   ${color("cyan", 'work "<intencao>"')}        recupera <=5 arquivos + brief + postura
   ${color("cyan", 'route "<intencao>"')}       so o roteamento
 ${color("bold", "Comunicacao (ADR-0024):")}
-  ${color("cyan", "brief")}                    situacao + postura de dialogo (leia antes de falar c/ usuario)
+  ${color("cyan", "brief")}                    situacao + postura de dialogo
   ${color("cyan", "caps")}                     navegacao interna: opcoes + acao recomendada
   ${color("cyan", "phase [fase]")}             ve/avanca a fase (discovery->execution->stabilization)
-  ${color("cyan", "init [new|existing]")}      onboarding guiado (perguntas p/ a LLM conduzir)
-${color("bold", "Varredura (ADR-0025):")}\n  ${color("cyan", "scan")}                     mapeia codigo/stack -> .ai/runtime/code-map.json\n  ${color("cyan", 'find "<termo>"')}           acha arquivos/simbolos no code-map\n${color("bold", "Memoria:")}
+  ${color("cyan", "init [new|existing]")}      onboarding guiado
+${color("bold", "Varredura (ADR-0025):")}
+  ${color("cyan", "scan")}                     mapeia codigo/stack -> .ai/runtime/code-map.json
+  ${color("cyan", 'find "<termo>"')}           acha arquivos/simbolos no code-map
+${color("bold", "Insights (roadmap):")}\n  ${color("cyan", 'metrics ["<intencao>"]')}    economia de contexto por tarefa\n  ${color("cyan", "routes")}                   sugere novas rotas pelo historico\n  ${color("cyan", "subtasks <spawn|status|done>")}  subtarefas como sessoes\n  ${color("cyan", "template <api|web|cli|lib>")}  seed por tipo de projeto\n${color("bold", "Memoria:")}
   ${color("cyan", 'recall "<termo>"')}         grep nos logs (sem carregar inteiro)
   ${color("cyan", 'remember <log> "<txt>"')}   append num log (tasks|decisions|errors)
   ${color("cyan", "read-core")}                imprime CONSTITUTION + state-of-world
-${color("bold", "Servidor:")}\n  ${color("cyan", "mcp")}                      inicia o servidor MCP (stdio) — usado pelas IDEs\n${color("bold", "Manutencao:")}
+${color("bold", "Servidor:")}
+  ${color("cyan", "mcp")}                      inicia o servidor MCP (stdio) — usado pelas IDEs\n  ${color("cyan", "serve [porta]")}            painel web do orquestrador (http, default 4173)
+${color("bold", "Manutencao:")}
   ${color("cyan", "sync")}                     reescreve o state-of-world + mede o CORE
   ${color("cyan", "tokens")}                   mede o CORE contra o teto
   ${color("cyan", "doctor")}                   integridade do indice/CORE/fase
 
-${color("bold", "Principio:")} contexto por tarefa, nao por projeto. Nao cabe -> decomponha a tarefa.
+${color("bold", "Principio:")} contexto por tarefa, nao por projeto. Nao cabe -> decomponha.
 `);
 }
 
@@ -186,6 +388,15 @@ const [cmd, ...rest] = process.argv.slice(2);
 const arg = rest.join(" ").trim();
 try {
   switch (cmd) {
+    case "next": case "orchestrate": cmdOrchestrate(rest); break;
+    case "handoff": cmdHandoff(rest); break;
+    case "gaps": cmdGaps(rest); break;
+    case "subtasks": cmdSubtasks(rest); break;
+    case "routes": cmdRoutes(); break;
+    case "metrics": cmdMetrics(rest); break;
+    case "template": cmdTemplate(rest); break;
+    case "session": cmdSession(rest); break;
+    case "decompose": cmdDecompose(arg); break;
     case "work": cmdWork(arg); break;
     case "route": cmdRoute(arg); break;
     case "tokens": cmdTokens(); break;
@@ -201,8 +412,12 @@ try {
     case "scan": cmdScan(); break;
     case "find": cmdFind(arg); break;
     case "mcp": import("../server/mcp.mjs").then((m) => m.start()); break;
+    case "serve": import("../server/web.mjs").then((m) => m.start(Number(rest[0]) || 4173)); break;
     case "scaffold": import("./scaffold.mjs").then((m) => { try { const a = rest.filter((x)=>!x.startsWith("--")); const r = m.scaffold(a[0], { force: rest.includes("--force") }); console.log(color("green", "ok scaffolded -> " + r.target)); r.next.forEach((n)=>console.log("   " + n)); } catch (e) { die(e.message); } }); break;
-    case "help": case undefined: cmdHelp(); break;
+    case "setup": cmdSetup(); break;
+    case "install": cmdInstall(rest); break;
+    case "help": cmdHelp(); break;
+    case undefined: banner(); cmdHelp(); break;
     default: die(`comando desconhecido: ${cmd}. Rode 'os help'.`);
   }
 } catch (e) {

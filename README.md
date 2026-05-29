@@ -45,6 +45,28 @@ node bin/os.mjs init     # onboarding guiado (detecta projeto novo vs. existente
 node bin/os.mjs scan     # varre o código e monta o code-map
 ```
 
+### Setup guiado (recomendado)
+O CLI tem uma interface amigável (banner + versão + passos):
+```bash
+node bin/os.mjs setup            # mostra o banner, detecta o ambiente e os próximos passos
+node bin/os.mjs install all      # escreve as configs MCP certas (Claude Code, VSCode, Antigravity)
+```
+`install` aceita também um alvo específico: `claude` | `vscode` | `antigravity` | `cursor` | `windsurf`. Depois, **reinicie a IDE**.
+
+Sem IDE? Use o **painel web** do orquestrador:
+```bash
+node bin/os.mjs serve         # abre http://localhost:4173
+```
+
+### Extensão (chat-orquestrador)
+Painel lateral que conversa com você, estrutura a tarefa e entrega o handoff à LLM:
+```bash
+npm i -g @vscode/vsce
+cd extension && vsce package     # gera o .vsix
+# VSCode → Extensions → "…" → Install from VSIX…
+```
+Guia completo de conexão (MCP + extensão) para todas as ferramentas: **[CONNECT.md](./CONNECT.md)**.
+
 ---
 
 ## Como você usa no dia a dia (autonomia — ADR-0026)
@@ -86,17 +108,31 @@ MCP nativo + workflows em `.agents/workflows/`. Reinicie a IDE.
 { "mcpServers": { "harness": { "command": "node", "args": ["${workspaceFolder}/bin/os.mjs", "mcp"] } } }
 ```
 
-### VSCode — `.vscode/tasks.json`
-O VSCode "puro" não tem agente/MCP nativo. Por ora, use **Tasks** (`Ctrl+Shift+P → Run Task → Harness: …`) para `doctor/brief/scan/sync/work`. Um **cockpit dedicado** (extensão própria) está planejado como fase posterior. Se você usa um agente no VSCode (Cline/Continue/Copilot com MCP), aponte-o para `node bin/os.mjs mcp`.
+### VSCode — MCP nativo + extensão própria
+- **MCP nativo (1.102+):** `.vscode/mcp.json` já aponta para `node bin/os.mjs mcp`. Abra a paleta → *MCP: List Servers*.
+- **Extensão Harness (`extension/`):** um **painel de orquestração** na barra lateral. Você digita a intenção e recebe classificação, perguntas guiadas, decomposição e ações em **botões** — sem texto no chat. Empacote com `cd extension && vsce package` e instale o `.vsix`.
+- **Agentes (Cline/Continue/Copilot):** aponte o MCP deles para `node bin/os.mjs mcp`.
+- Também há **Tasks** (`Run Task → Harness: …`) para `doctor/brief/scan/sync/work`.
+
+> Guia completo de conexão para todas as ferramentas: **[CONNECT.md](./CONNECT.md)**.
 
 ---
 
-## As 14 ferramentas (tools MCP = espelho do CLI)
+## As 23 ferramentas (tools MCP = espelho do CLI)
 
 A LLM chama estas; você vê os equivalentes no CLI (`node bin/os.mjs <cmd>`).
 
 | Tool / comando | Para quê |
 |---|---|
+| `os_orchestrate` / `next "<intenção>"` | **Orquestrador:** pacote de interação (classifica + perguntas + decompõe + ações + `awaiting`) |
+| `os_handoff` / `handoff "<intenção>"` | **Entrega à LLM:** spec estruturada (objetivo/escopo/não-fazer/onde/como/porquê) |
+| `os_gaps` / `gaps "<intenção>"` | **O que falta:** smells, arquivos sem teste, arquivo ausente |
+| `os_metrics` / `metrics ["<intenção>"]` | Economia de contexto por tarefa vs. projeto inteiro |
+| `os_suggest_routes` / `routes` | Sugere novas rotas a partir do histórico |
+| `os_subtasks` / `subtasks <spawn\|status\|done>` | Subtarefas como sessões-filhas (progresso) |
+| `os_template` / `template <api\|web\|cli\|lib>` | Seed por tipo de projeto |
+| `os_session` / `session <start\|answer\|status\|clear>` | Chat-orquestrador persistente (conduz a conversa e resume) |
+| `os_decompose` / `decompose "<intenção>"` | Quebra tarefa que estoura o orçamento em subtarefas |
 | `os_read_core` / `read-core` | Carrega o CORE (CONSTITUTION + state-of-world) numa chamada |
 | `os_brief` / `brief` | Situação + postura de diálogo (a LLM lê antes de falar com você) |
 | `os_capabilities` / `caps` | Navegação interna: opções disponíveis + ação recomendada |
