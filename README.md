@@ -30,6 +30,13 @@ npx @igorkadu/harness scaffold .
 
 Isso instala, no diretório atual: o motor (`src/` + `bin/` + `server/`), o `.ai/` (CORE, conhecimento, memória fresca), e os stubs de configuração para Claude Code, Antigravity e VSCode. Use `--force` para sobrescrever.
 
+### Atualizar (upgrade) sem perder a memória
+Em um projeto que já usa o Harness, **não rode `scaffold` por cima** (ele recusa, para te proteger). Use:
+```bash
+node bin/os.mjs upgrade .     # atualiza motor/bocas/CORE, PRESERVA .ai/memory + fase, faz backup em .ai/backup-*
+```
+Se não houver memória no destino, o `upgrade`/`scaffold` faz a instalação padrão (zerada).
+
 **Ou via git (enquanto o npm não está publicado):**
 
 ```bash

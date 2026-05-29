@@ -378,7 +378,7 @@ ${color("bold", "Servidor:")}
 ${color("bold", "Manutencao:")}
   ${color("cyan", "sync")}                     reescreve o state-of-world + mede o CORE
   ${color("cyan", "tokens")}                   mede o CORE contra o teto
-  ${color("cyan", "doctor")}                   integridade do indice/CORE/fase
+  ${color("cyan", "doctor")}                   integridade do indice/CORE/fase\n  ${color("cyan", "upgrade [dir]")}            atualiza o Harness PRESERVANDO memoria (backup automatico)
 
 ${color("bold", "Principio:")} contexto por tarefa, nao por projeto. Nao cabe -> decomponha.
 `);
@@ -413,7 +413,8 @@ try {
     case "find": cmdFind(arg); break;
     case "mcp": import("../server/mcp.mjs").then((m) => m.start()); break;
     case "serve": import("../server/web.mjs").then((m) => m.start(Number(rest[0]) || 4173)); break;
-    case "scaffold": import("./scaffold.mjs").then((m) => { try { const a = rest.filter((x)=>!x.startsWith("--")); const r = m.scaffold(a[0], { force: rest.includes("--force") }); console.log(color("green", "ok scaffolded -> " + r.target)); r.next.forEach((n)=>console.log("   " + n)); } catch (e) { die(e.message); } }); break;
+    case "scaffold": import("./scaffold.mjs").then((m) => { try { const a = rest.filter((x)=>!x.startsWith("--")); const r = m.scaffold(a[0], { force: rest.includes("--force") }); console.log(color("green", "ok " + r.mode + " -> " + r.target)); if (r.backup) console.log(color("dim", "   backup: " + r.backup)); r.next.forEach((n)=>console.log("   " + n)); } catch (e) { die(e.message); } }); break;
+    case "upgrade": import("./scaffold.mjs").then((m) => { try { const a = rest.filter((x)=>!x.startsWith("--")); const r = m.upgrade(a[0] || "."); console.log(color("green", "ok " + r.mode + " -> " + r.target)); if (r.backup) console.log(color("dim", "   backup: " + r.backup)); r.next.forEach((n)=>console.log("   " + n)); } catch (e) { die(e.message); } }); break;
     case "setup": cmdSetup(); break;
     case "install": cmdInstall(rest); break;
     case "help": cmdHelp(); break;

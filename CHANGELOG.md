@@ -13,6 +13,7 @@ versionamento semantico.
 - **Painel web standalone** (`os serve [porta]`): chat-orquestrador via http zero-dep, sem IDE.
 - **Mais alvos de install**: Cursor e Windsurf (alem de Claude Code/VSCode/Antigravity).
 - **Acoes na extensao realimentam a sessao** (`session note`): resultado de scan/work/decompose vira nota persistida.
+- **`os upgrade [dir]`**: atualiza o motor/bocas/CORE PRESERVANDO `.ai/memory` + fase, com backup automatico em `.ai/backup-*`; instalacao zerada so quando nao ha memoria.
 - MCP agora com **23 tools**.
 
 ## [0.2.0] - 2026-05-28
