@@ -297,12 +297,11 @@ function cmdInstall(rest) {
     const list = target === "all" ? m.CONFIG_TARGETS : [target];
     let r;
     try { r = m.install(process.cwd(), list); } catch (e) { die(e.message); return; }
-    if (r.harnessCreated) console.log(`   ${color("green", "ok")} Harness instalado em ${color("cyan", ".harness/")}  ${color("dim", "(motor + MCP + extensao + memoria)")}`);
+    if (r.harnessCreated) console.log(`   ${color("green", "ok")} Harness instalado em ${color("cyan", ".harness/")}  ${color("dim", "(motor + MCP + automacoes + memoria)")}`);
     else console.log(color("dim", "   .harness/ ja existe — atualizando configs"));
     console.log(color("bold", "\n   Configs MCP gravadas:"));
     r.written.forEach((w) => console.log(`   ${color("green", "ok")} ${w.target.padEnd(12)} -> ${w.file}`));
-    console.log(color("dim", `\n   Extensao (chat-orquestrador): Install from VSIX -> ${r.vsix}`));
-    console.log(color("dim", "   Reinicie a IDE para conectar o MCP. Guia: .harness/CONNECT.md\n"));
+    console.log(color("dim", "\n   Proximo: rode o fluxo padrao -> node .harness/bin/os.mjs pipeline\n   Reinicie a IDE para conectar o MCP. Guia: .harness/CONNECT.md\n"));
   });
 }
 
@@ -348,13 +347,56 @@ function cmdTemplate(rest) {
   console.log(color("dim", "  triggers sugeridos p/ rotas: " + t.rotas.join(", ")));
 }
 
+function cmdPipeline(rest) {
+  const json = rest.includes("--json");
+  const intent = rest.filter((x) => !x.startsWith("--")).join(" ").trim();
+  const r = engine.pipeline(intent);
+  if (json) { console.log(JSON.stringify(r, null, 2)); return; }
+  console.log(color("bold", "\n=== Pipeline (turbina) — \"" + r.intent + "\" ==="));
+  const p = r.profile;
+  console.log("  Stack: " + (p.stack.join(", ") || "(n/d)") + " | arquivos de codigo: " + p.counts.codeFiles + " (" + p.counts.codeLines + " linhas)");
+  console.log("  Entrypoints: " + (p.entrypoints.join(", ") || "(n/d)"));
+  console.log("  Docs: " + p.docs.length + " | Testes: " + (p.tests.has ? p.tests.count : "nenhum") + " | Configs: " + p.configs.length + " | Smells: " + p.smells.length);
+  console.log("  Classificacao: " + color("yellow", r.classification) + " | Falta: " + r.gaps.length + " item(ns)");
+  console.log(color("green", "\n  ok handoff salvo em " + r.handoffPath));
+}
+
+function cmdAnalyze() {
+  const a = engine.analyzeProject();
+  console.log(color("bold", "\n=== Analyze (perfil do projeto) ==="));
+  console.log("  Pacote: " + (a.package || "(n/d)") + " | Stack: " + (a.stack.join(", ") || "(n/d)"));
+  console.log("  Entries: " + a.counts.entries + " | dirs: " + a.counts.dirs + " | codigo: " + a.counts.codeFiles + " arq / " + a.counts.codeLines + " linhas");
+  console.log("  Entrypoints: " + (a.entrypoints.join(", ") || "(n/d)"));
+  console.log("  Configs: " + (a.configs.slice(0,6).join(", ") || "(n/d)"));
+  console.log("  Docs: " + (a.docs.slice(0,4).join(", ") || "(n/d)") + " | Testes: " + (a.tests.has ? a.tests.count : "nenhum"));
+  if (Object.keys(a.scripts).length) console.log("  Scripts: " + Object.keys(a.scripts).join(", "));
+  if (a.deps.length) console.log("  Deps: " + a.deps.slice(0,10).join(", "));
+  if (a.smells.length) console.log("  Smells: " + a.smells.map((s)=>s.path).join(", "));
+}
+
+function cmdInspect(rest) {
+  const sub = rest.filter((x) => !x.startsWith("--")).join(" ").trim() || ".";
+  const t = engine.inspectTree(sub);
+  console.log(color("bold", "\n=== Inspect: " + sub + " (" + t.count + (t.truncated ? "+" : "") + ") ==="));
+  t.entries.forEach((e) => console.log("  " + (e.type === "dir" ? color("cyan", e.path + "/") : e.path)));
+}
+
+function cmdAutomations() {
+  const a = engine.automations();
+  console.log(color("bold", "\n=== Automacoes (turbina) ==="));
+  console.log(color("bold", "  Globais:")); a.global.forEach((x) => console.log("   - " + color("cyan", x.id.padEnd(10)) + " " + x.desc));
+  console.log(color("bold", "  Isoladas:")); a.isolated.forEach((x) => console.log("   - " + color("cyan", x.id.padEnd(10)) + " " + x.desc));
+  console.log(color("dim", "\n  " + a.note));
+}
+
 function cmdHelp() {
+
 
 
   console.log(`
 ${color("bold", "Harness — Lean AI OS")}  ${color("dim", "(retrieval-first · ADR-0022..0029)")}
 
-${color("bold", "Orquestracao (ADR-0027):")}
+${color("bold", "Turbina / automacoes (ADR-0034) — o Harness faz o pesado no repo:")}\n  ${color("cyan", 'pipeline ["<intencao>"]')}  fluxo padrao: analisa o projeto + escreve handoff p/ a LLM\n  ${color("cyan", "analyze")}                  perfil profundo do projeto\n  ${color("cyan", "inspect [subpasta]")}       lista pastas/arquivos (protege .harness)\n  ${color("cyan", "automations")}              catalogo de bots (globais/isoladas)\n${color("bold", "Orquestracao (ADR-0027):")}
   ${color("cyan", 'next "<intencao>"')}        pacote de interacao: classifica + perguntas + acoes (use --json p/ a extensao)
   ${color("cyan", 'decompose "<intencao>"')}   quebra tarefa grande em subtarefas
   ${color("cyan", 'handoff "<intencao>"')}     gera/escreve a entrega p/ a LLM em .harness/.ai/handoff.md
@@ -392,6 +434,10 @@ const [cmd, ...rest] = process.argv.slice(2);
 const arg = rest.join(" ").trim();
 try {
   switch (cmd) {
+    case "pipeline": cmdPipeline(rest); break;
+    case "analyze": cmdAnalyze(); break;
+    case "inspect": cmdInspect(rest); break;
+    case "automations": cmdAutomations(); break;
     case "next": case "orchestrate": cmdOrchestrate(rest); break;
     case "handoff": cmdHandoff(rest); break;
     case "smash": cmdSmash(); break;

@@ -3,6 +3,18 @@
 Todas as mudancas relevantes deste projeto. Formato baseado em Keep a Changelog;
 versionamento semantico.
 
+## [0.6.0] - 2026-05-30
+### Added
+- **Harness como TURBINA (ADR-0034):** automacoes que fazem o trabalho pesado no repo e entregam tudo p/ a LLM.
+  - `os_pipeline` — fluxo padrao (scan+analyze+gaps+handoff) p/ projeto novo ou existente.
+  - `os_analyze` — perfil profundo: estrutura, stack, entrypoints, configs, docs, testes, deps, scripts, smells.
+  - `os_inspect [sub]` — lista pastas/arquivos (global ou por modulo), protegendo `.harness/`.
+  - `os_automations` — catalogo dos bots (globais x isolados). MCP agora com **29 tools**.
+### Removed
+- **Extensao VSCode (.vsix) removida.** A interacao direta sem a LLM continua via CLI e painel web (`os serve`).
+### Changed
+- Posicionamento: o Harness e a turbina do desenvolvimento (motor via MCP/CLI), nao um painel — independente da IDE/LLM.
+
 ## [0.5.0] - 2026-05-30
 ### Added
 - **Canal Usuario<->Harness<->LLM (ADR-0033):** `handoff.md` gerado automaticamente ao fim do dialogo; comando **`smash`** (tools `os_smash`/`os_report`) faz a LLM seguir o handoff e devolver um relatorio que o Harness le na proxima interacao (`os_brief` mostra `pendingHandoff`/`lastReport`). MCP agora com **25 tools**.

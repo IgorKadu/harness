@@ -6,7 +6,7 @@
 import * as engine from "../src/engine.mjs";
 
 const PROTOCOL = "2024-11-05";
-const SERVER = { name: "harness-lean-ai-os", version: "0.5.0" };
+const SERVER = { name: "harness-lean-ai-os", version: "0.6.0" };
 const J = (o) => JSON.stringify(o, null, 2);
 
 const TOOLS = [
@@ -204,6 +204,30 @@ const TOOLS = [
     description: "SMASH (ADR-0033): devolve o handoff.md atual — estado/diretrizes do projeto alinhados entre Usuario e Harness. A LLM chama isto, SEGUE o handoff e ao terminar registra o que fez via os_report. Canal Usuario->Harness->LLM.",
     inputSchema: { type: "object", properties: {} },
     run: () => { const h = engine.readHandoff(); return h.exists ? h.text : "Nenhum handoff pendente. Rode os_orchestrate/os_session ou os_handoff primeiro."; },
+  },
+  {
+    name: "os_pipeline",
+    description: "TURBINA (ADR-0034): fluxo padrao de desenvolvimento. O Harness faz o pesado no repo (scan + analyze + gaps) e ENTREGA o perfil do projeto + escreve handoff.md p/ a LLM. Use isto no inicio de um projeto novo ou existente. Param intent opcional.",
+    inputSchema: { type: "object", properties: { intent: { type: "string" } } },
+    run: ({ intent }) => J(engine.pipeline(intent || "")),
+  },
+  {
+    name: "os_analyze",
+    description: "Perfil profundo do PROJETO (nao do Harness): estrutura, stack, entrypoints, configs, docs, testes, dependencias, scripts e smells. Para a LLM entender o projeto sem ler tudo.",
+    inputSchema: { type: "object", properties: {} },
+    run: () => J(engine.analyzeProject()),
+  },
+  {
+    name: "os_inspect",
+    description: "Lista pastas/arquivos do projeto (ou de uma subpasta). Escopado e seguro: protege .harness e ignora ruido (node_modules, .git, build). Use sub para isolar um modulo (ex: src/payments).",
+    inputSchema: { type: "object", properties: { sub: { type: "string" } } },
+    run: ({ sub }) => J(engine.inspectTree(sub || ".")),
+  },
+  {
+    name: "os_automations",
+    description: "Catalogo das automacoes (bots) do Harness — globais e isoladas — que a LLM pode acionar para o trabalho pesado no repo.",
+    inputSchema: { type: "object", properties: {} },
+    run: () => J(engine.automations()),
   },
   {
     name: "os_report",

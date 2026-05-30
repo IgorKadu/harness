@@ -19,3 +19,4 @@
 2026-05-29 | upgrade-safe: scaffold detecta memoria; os upgrade preserva .ai/memory+fase com backup; instalacao zerada so sem memoria
 2026-05-30 | ADR-0030 v0.4.0: instalacao discreta, tudo em .harness/
 2026-05-30 | ADR-0033 v0.5.0: canal smash/handoff/report + protecao .harness + scan do PROJECT_ROOT + slot LLM na extensao; 25 tools
+2026-05-30 | ADR-0034 v0.6.0: Harness vira turbina (os_pipeline/analyze/inspect/automations); extensao VSCode removida; 29 tools

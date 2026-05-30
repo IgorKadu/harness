@@ -17,3 +17,4 @@
 | ADR-0031 | install instala o Harness completo (qualquer IDE) + config local | aceito |
 | ADR-0032 | Config MCP com caminho absoluto + instrucoes por ecossistema (CLAUDE/GEMINI/AGENTS) | aceito |
 | ADR-0033 | Canal smash/handoff/report + protecao do .harness + scan do projeto + slot LLM | aceito |
+| ADR-0034 | Harness como turbina (automacoes pipeline/analyze/inspect); extensao removida | aceito |

@@ -66,7 +66,7 @@ As **únicas** vezes em que o Harness para para te perguntar algo são duas (as 
 
 ## O fluxo "smash" (Usuário → Harness → LLM)
 
-1. Converse com o **painel do Harness** (extensão) ou pelo MCP. No fim, ele salva tudo em `.harness/.ai/handoff.md` — objetivo, escopo, o que **não** fazer, onde mexer, o que falta.
+1. A LLM (ou você via CLI) roda `os_pipeline`/`os_orchestrate`; ao final o Harness salva tudo em `.harness/.ai/handoff.md` — objetivo, escopo, o que **não** fazer, onde mexer, o que falta.
 2. No chat da IDE (com a LLM), digite **`smash`**. A LLM lê o handoff (tool `os_smash`), executa seguindo o Harness e, ao terminar, registra o que fez (`os_report`).
 3. Na próxima interação, o Harness lê esse relatório e já sabe o andamento — define o próximo passo com contexto e memória.
 
@@ -93,26 +93,17 @@ Ou escolha só a sua: `install claude` · `install vscode` · `install cursor` �
 
 Passo a passo detalhado de cada uma: **[CONNECT.md](./CONNECT.md)**.
 
-### Extensão para VSCode (chat-orquestrador)
-Um painel lateral que **conversa com você**, organiza a tarefa e entrega o resultado pronto para a IA.
-
-**O arquivo já vem pronto** — não precisa compilar nada:
-
-1. No VSCode (ou Cursor/Windsurf/Antigravity), abra a paleta (`Ctrl+Shift+P`).
-2. Digite **"Install from VSIX"** e selecione.
-3. Escolha o arquivo **`.harness/extension/harness-lean-ai-os-0.5.0.vsix`** (dentro da pasta do Harness).
-4. Pronto — o ícone do Harness aparece na barra lateral.
-
-> Se você não vê esse arquivo, rode a instalação primeiro (ela cria `.harness/`). Rode `npx @igorkadu/harness scaffold .` (ou `upgrade .`) primeiro — isso copia a extensão para o seu projeto.
-
-<details>
-<summary>Quer recompilar a extensão você mesmo? (opcional)</summary>
+### A turbina (o Harness faz o trabalho pesado)
+O Harness analisa o repositório e entrega o contexto pronto para a IA — você não precisa abrir painel nenhum, é tudo via as tools MCP / CLI:
 
 ```bash
-npm i -g @vscode/vsce
-cd extension && vsce package      # gera um novo .vsix
+node .harness/bin/os.mjs pipeline        # analisa o projeto (estrutura, stack, docs, testes, smells) + gera o handoff
+node .harness/bin/os.mjs analyze         # perfil profundo do projeto
+node .harness/bin/os.mjs inspect src     # lista uma pasta/módulo (protege .harness)
+node .harness/bin/os.mjs automations     # catálogo de automações (globais/isoladas)
 ```
-</details>
+
+Interação direta **sem a LLM**: pelo CLI acima ou pelo painel web `node .harness/bin/os.mjs serve`.
 
 ---
 
@@ -157,7 +148,7 @@ A IA acessa exatamente os mesmos recursos via **25 ferramentas MCP** (`os_orches
 
 ## Para curiosos: como é por dentro
 
-**Um cérebro, várias bocas.** Toda a lógica vive num motor único; CLI, servidor MCP, extensão e painel web são só "bocas" finas que chamam esse motor — sem duplicar nada.
+**Um cérebro, várias bocas.** Toda a lógica vive num motor único; CLI, servidor MCP e painel web são só "bocas" finas que chamam esse motor — sem duplicar nada.
 
 ```
 Harness/
@@ -165,7 +156,6 @@ Harness/
 ├── bin/os.mjs           # boca: linha de comando (CLI)
 ├── server/mcp.mjs       # boca: servidor MCP (usado pelas IDEs)
 ├── server/web.mjs       # boca: painel web
-├── extension/           # boca: extensão do VSCode
 └── .ai/
     ├── CONSTITUTION.md      # regras sempre-ligadas (~1k tokens)
     ├── retrieval-index.json # mapa "intenção → até 5 arquivos"
@@ -180,4 +170,4 @@ Decisões de arquitetura (ADRs 0022–0029) ficam em `.ai/specs/ADR/`. Veja tamb
 ---
 
 ## Licença
-MIT — use, faça fork, publique. Versão atual: **v0.5.0**.
+MIT — use, faça fork, publique. Versão atual: **v0.6.0**.

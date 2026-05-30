@@ -49,6 +49,9 @@ Quando o usuario disser **smash** (ou "siga o handoff"):
 2. **execute** seguindo objetivo/escopo/onde/como/o-que-nao-fazer do handoff;
 3. ao terminar, chame \`os_report\` com um resumo do que voce fez — o Harness le isso na proxima vez.
 
+## Fluxo padrao (projeto novo ou existente)
+- Comece pela TURBINA: \`os_pipeline\` — o Harness analisa o repo (estrutura, stack, docs, testes, smells) e ja escreve o handoff. Use \`os_analyze\`/\`os_inspect\` para aprofundar.
+
 ## Protocolo (toda mensagem)
 1. \`os_brief\` — fase, postura, handoff pendente e ultimo relatorio.
 2. \`os_orchestrate "<intencao>"\` — classifica + perguntas + decomposicao + acoes + \`awaiting\`.
@@ -100,7 +103,7 @@ function vendor(dst, { force = false } = {}) {
   }
 
   const copy = (rel, toRel) => { const s = join(SRC, rel); if (existsSync(s)) cpSync(s, join(H, toRel || rel), { recursive: true }); };
-  copy("src"); copy("bin/os.mjs"); copy("bin/scaffold.mjs"); copy("server"); copy("extension");
+  copy("src"); copy("bin/os.mjs"); copy("bin/scaffold.mjs"); copy("server");
   copy(".ai/CONSTITUTION.md"); copy(".ai/retrieval-index.json"); copy(".ai/retrieval-index.schema.json");
   copy(".ai/knowledge"); copy(".ai/bootstrap");
   mkdirSync(join(aiDst, "specs", "ADR"), { recursive: true });
@@ -135,8 +138,6 @@ function vendor(dst, { force = false } = {}) {
   return { mode: isUpgrade ? "upgrade" : "fresh", backup, proj, preserve };
 }
 
-const vsixRel = () => `.harness/extension/harness-lean-ai-os-${pkgVersion()}.vsix`;
-
 export function scaffold(targetDir, { force = false } = {}) {
   if (!targetDir) throw new Error("uso: scaffold <dir-alvo> [--force]");
   const dst = resolve(targetDir);
@@ -146,8 +147,8 @@ export function scaffold(targetDir, { force = false } = {}) {
   writeInstructions(dst, v.proj, CONFIG_TARGETS, v.preserve);
   const next = v.mode === "upgrade"
     ? ["memoria preservada (backup em .harness/.ai/backup-*)", "reinicie a IDE", "node .harness/bin/os.mjs doctor"]
-    : ["reinicie a IDE para conectar o MCP", "node .harness/bin/os.mjs doctor", `extensao: Install from VSIX -> ${vsixRel()}`];
-  return { target: dst, mode: v.mode, backup: v.backup, configs: CONFIG_TARGETS, vsix: vsixRel(), next };
+    : ["reinicie a IDE para conectar o MCP", "node .harness/bin/os.mjs doctor", "node .harness/bin/os.mjs pipeline  (fluxo padrao: analisa o projeto)"];
+  return { target: dst, mode: v.mode, backup: v.backup, configs: CONFIG_TARGETS, next };
 }
 
 export function upgrade(targetDir) { return scaffold(targetDir, { force: true }); }
@@ -161,7 +162,7 @@ export function install(targetDir, targets) {
   else { preserve = true; writeIgnores(dst, false); }
   const written = list.map((t) => ({ target: t, file: writeConfig(dst, t) }));
   writeInstructions(dst, proj, list, preserve);
-  return { target: dst, harnessCreated, mode, backup, written, vsix: vsixRel() };
+  return { target: dst, harnessCreated, mode, backup, written };
 }
 
 if (process.argv[1] && process.argv[1].endsWith("scaffold.mjs")) {
