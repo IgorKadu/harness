@@ -36,7 +36,7 @@ Exemplo do que é gravado (VSCode):
 Não precisa compilar. O arquivo `.vsix` está em `extension/`:
 
 1. Paleta (`Ctrl+Shift+P`) → **Install from VSIX...**
-2. selecione `.harness/extension/harness-lean-ai-os-0.4.1.vsix`.
+2. selecione `.harness/extension/harness-lean-ai-os-0.4.2.vsix`.
 3. O ícone do Harness aparece na barra lateral.
 
 > Não vê a pasta `extension/`? Rode `npx @igorkadu/harnes

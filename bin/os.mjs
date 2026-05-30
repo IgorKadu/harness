@@ -253,63 +253,43 @@ function banner() {
   console.log("");
 }
 
-// Comando MCP correto para o contexto: bin local (apos scaffold) ou npx.
-function mcpCmd() {
-  const cwd = process.cwd();
-  if (existsSync(join(cwd, ".harness", "bin", "os.mjs"))) return { command: "node", args: [".harness/bin/os.mjs", "mcp"] };
-  if (existsSync(join(cwd, "bin", "os.mjs"))) return { command: "node", args: ["bin/os.mjs", "mcp"] };
-  return { command: "npx", args: ["-y", "@igorkadu/harness", "mcp"] };
-}
-function targets() {
-  const c = mcpCmd();
-  return {
-    claude: { file: ".claude/settings.json", json: { mcpServers: { harness: { ...c } } } },
-    vscode: { file: ".vscode/mcp.json", json: { servers: { harness: { type: "stdio", ...c } } } },
-    antigravity: { file: ".gemini/settings.json", json: { mcpServers: { harness: { ...c } } } },
-    cursor: { file: ".cursor/mcp.json", json: { mcpServers: { harness: { ...c } } } },
-    windsurf: { file: ".windsurf/mcp.json", json: { mcpServers: { harness: { ...c } } } },
-  };
-}
+function existsDir(p) { try { return statSync(p).isDirectory(); } catch { return false; } }
 
 function cmdSetup() {
   banner();
   const here = process.cwd();
+  const installed = existsSync(join(here, ".harness", "bin", "os.mjs"));
   console.log(color("bold", "   Pasta atual: ") + color("dim", here));
-  console.log(color("bold", "\n   Ambiente detectado (configs ja criadas aqui):"));
+  console.log(`   Harness: ${installed ? color("green", "instalado em .harness/") : color("yellow", "ainda nao instalado aqui")}`);
+  console.log(color("bold", "\n   Configs de IDE detectadas:"));
   const checks = [[".claude", "Claude Code"], [".vscode", "VSCode"], [".gemini", "Antigravity/Gemini"], [".cursor", "Cursor"], [".windsurf", "Windsurf"]];
   for (const [dir, label] of checks) {
     const ok = existsDir(join(here, dir));
-    console.log(`   ${ok ? color("green", "ok") : color("dim", "--")} ${label}  ${color("dim", dir + (ok ? "" : " (rode install)"))}`);
+    console.log(`   ${ok ? color("green", "ok") : color("dim", "--")} ${label}  ${color("dim", dir)}`);
   }
-  const localBin = existsSync(join(here, ".harness", "bin", "os.mjs")) || existsSync(join(here, "bin", "os.mjs"));
   console.log("");
   console.log(color("bold", "   Proximos passos:"));
-  console.log(`   1. ${color("cyan", "npx @igorkadu/harness install all")}   conecta o MCP nas IDEs`);
-  console.log(`   2. ${color("cyan", "reinicie a IDE")}                 servidores MCP so conectam no boot`);
-  console.log(`   3. ${color("cyan", localBin ? "node .harness/bin/os.mjs doctor" : "npx @igorkadu/harness doctor")}        valida a integridade`);
-  console.log(color("dim", "   Extensao VSCode: Install from VSIX -> .harness/extension/*.vsix. Guia: .harness/CONNECT.md"));
+  console.log(`   1. ${color("cyan", "npx @igorkadu/harness install all")}   instala o Harness + conecta o MCP (ou troque 'all' pela sua IDE)`);
+  console.log(`   2. ${color("cyan", "reinicie a IDE")}`);
+  console.log(`   3. ${color("cyan", installed ? "node .harness/bin/os.mjs doctor" : "npx @igorkadu/harness doctor")}`);
+  console.log(color("dim", "   Extensao: Install from VSIX -> .harness/extension/*.vsix. Guia: .harness/CONNECT.md"));
   console.log("");
 }
 
-function existsDir(p) { try { return statSync(p).isDirectory(); } catch { return false; } }
-
 function cmdInstall(rest) {
   const target = (rest[0] || "all").toLowerCase();
-  const T = targets();
-  const list = target === "all" ? Object.keys(T) : [target];
-  if (list.some((t) => !T[t])) die("alvo invalido. Use: claude | vscode | antigravity | cursor | windsurf | all");
   banner();
-  const cwd = process.cwd();
-  console.log(color("bold", "   Gravando configs MCP em: ") + color("dim", cwd) + "\n");
-  for (const t of list) {
-    const { file, json } = T[t];
-    mkdirSync(join(cwd, file.split("/")[0]), { recursive: true });
-    writeFileSync(join(cwd, file), JSON.stringify(json, null, 2) + "\n", "utf8");
-    console.log(`   ${color("green", "ok")} ${t.padEnd(12)} -> ${file}`);
-  }
-  const localBin = existsSync(join(cwd, ".harness", "bin", "os.mjs")) || existsSync(join(cwd, "bin", "os.mjs"));
-  if (!localBin) console.log(color("yellow", "\n   Aviso: nao achei bin/os.mjs aqui. As configs usam 'npx @igorkadu/harness mcp'."));
-  console.log(color("dim", "\n   Reinicie a IDE para conectar o MCP. Detalhes em CONNECT.md.\n"));
+  import("./scaffold.mjs").then((m) => {
+    const list = target === "all" ? m.CONFIG_TARGETS : [target];
+    let r;
+    try { r = m.install(process.cwd(), list); } catch (e) { die(e.message); return; }
+    if (r.harnessCreated) console.log(`   ${color("green", "ok")} Harness instalado em ${color("cyan", ".harness/")}  ${color("dim", "(motor + MCP + extensao + memoria)")}`);
+    else console.log(color("dim", "   .harness/ ja existe — atualizando configs"));
+    console.log(color("bold", "\n   Configs MCP gravadas:"));
+    r.written.forEach((w) => console.log(`   ${color("green", "ok")} ${w.target.padEnd(12)} -> ${w.file}`));
+    console.log(color("dim", `\n   Extensao (chat-orquestrador): Install from VSIX -> ${r.vsix}`));
+    console.log(color("dim", "   Reinicie a IDE para conectar o MCP. Guia: .harness/CONNECT.md\n"));
+  });
 }
 
 function cmdSubtasks(rest) {

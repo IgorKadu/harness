@@ -1,74 +1,62 @@
 #!/usr/bin/env node
-// Harness — Lean AI OS · scaffolder/upgrader (instalacao DISCRETA — ADR-0030)
-// Tudo do Harness vive num unico diretorio oculto: .harness/ (motor + bocas + .ai).
-// Na raiz do projeto ficam apenas: os dotfiles de config das IDEs e um CLAUDE.md enxuto.
-// - Sem memoria no alvo  -> instalacao PADRAO (memoria zerada).
-// - Com memoria no alvo  -> UPGRADE: atualiza .harness/, PRESERVA .harness/.ai/memory + fase,
-//   com backup em .harness/.ai/backup-<timestamp>/.
-// Uso: npx @igorkadu/harness scaffold <dir>   |   npx @igorkadu/harness upgrade <dir>
+// Harness — Lean AI OS · instalador (ADR-0030/0031): instalacao DISCRETA e COMPLETA.
+// Tudo (motor + bocas + .ai + extensao) vive em .harness/. Qualquer 'install <ide>'
+// GARANTE o .harness/ completo e entao escreve a config MCP da IDE pedida.
+// Na raiz do projeto ficam so os dotfiles de config (ocultos) e um CLAUDE.md enxuto.
 
-import { cpSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
+import { cpSync, mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SRC = resolve(dirname(fileURLToPath(import.meta.url)), ".."); // raiz do pacote (origem dos templates)
+const SRC = resolve(dirname(fileURLToPath(import.meta.url)), ".."); // raiz do pacote (origem)
 
-// Comando MCP a usar nas configs: bin vendorizado em .harness/ (se existir) ou npx.
-function mcpArgs() {
-  return { rel: ".harness/bin/os.mjs" };
-}
+function pkgVersion() { try { return JSON.parse(readFileSync(join(SRC, "package.json"), "utf8")).version || "0.0.0"; } catch { return "0.0.0"; } }
 
-function writeConfigs(dst) {
-  const node = (relPath) => ({ command: "node", args: [relPath, "mcp"] });
-  const claude = { command: "node", args: ["${CLAUDE_PROJECT_DIR}/.harness/bin/os.mjs", "mcp"] };
-  const cfgs = [
-    [".claude/settings.json", { mcpServers: { harness: claude } }],
-    [".vscode/mcp.json", { servers: { harness: { type: "stdio", ...node(".harness/bin/os.mjs") } } }],
-    [".gemini/settings.json", { mcpServers: { harness: { command: "node", args: ["${workspaceFolder}/.harness/bin/os.mjs", "mcp"] } } }],
-    [".cursor/mcp.json", { mcpServers: { harness: node(".harness/bin/os.mjs") } }],
-    [".windsurf/mcp.json", { mcpServers: { harness: node(".harness/bin/os.mjs") } }],
-  ];
-  for (const [file, json] of cfgs) {
-    mkdirSync(join(dst, file.split("/")[0]), { recursive: true });
-    writeFileSync(join(dst, file), JSON.stringify(json, null, 2) + "\n", "utf8");
-  }
+// ---- configs MCP por IDE (sempre apontando para o .harness/ local) ----------
+const NODE_LOCAL = { command: "node", args: [".harness/bin/os.mjs", "mcp"] };
+export const CONFIG_TARGETS = ["claude", "vscode", "antigravity", "cursor", "windsurf"];
+const CFG = {
+  claude: { file: ".claude/settings.json", json: { mcpServers: { harness: { command: "node", args: ["${CLAUDE_PROJECT_DIR}/.harness/bin/os.mjs", "mcp"] } } } },
+  vscode: { file: ".vscode/mcp.json", json: { servers: { harness: { type: "stdio", ...NODE_LOCAL } } } },
+  antigravity: { file: ".gemini/settings.json", json: { mcpServers: { harness: { command: "node", args: ["${workspaceFolder}/.harness/bin/os.mjs", "mcp"] } } } },
+  cursor: { file: ".cursor/mcp.json", json: { mcpServers: { harness: { ...NODE_LOCAL } } } },
+  windsurf: { file: ".windsurf/mcp.json", json: { mcpServers: { harness: { ...NODE_LOCAL } } } },
+};
+function writeConfig(dst, target) {
+  const c = CFG[target];
+  if (!c) throw new Error(`alvo invalido: '${target}'. Use: ${CONFIG_TARGETS.join(" | ")} | all`);
+  mkdirSync(join(dst, c.file.split("/")[0]), { recursive: true });
+  writeFileSync(join(dst, c.file), JSON.stringify(c.json, null, 2) + "\n", "utf8");
+  return c.file;
 }
 
 function rootClaude(proj) {
   return `# CLAUDE.md — ${proj} (powered by Harness · Lean AI OS)
 
-> O Harness (orquestrador) esta instalado em \`.harness/\`. Você (IA) o aciona pelas **tools MCP**
+> O Harness (orquestrador) esta instalado em \`.harness/\`. Voce (IA) o aciona pelas **tools MCP**
 > (\`os_brief\`, \`os_orchestrate\`, \`os_handoff\`, …). O CLI equivalente e \`node .harness/bin/os.mjs <cmd>\`.
 
 ## Protocolo (toda mensagem)
-1. Situacao: tool \`os_brief\` — devolve fase, postura de dialogo e proximo passo.
+1. Situacao: tool \`os_brief\` — fase, postura de dialogo e proximo passo.
 2. Tarefa: \`os_orchestrate "<intencao>"\` — classifica + perguntas guiadas + decomposicao + acoes + \`awaiting\`.
    Siga o \`awaiting\` (so pausa em \`user_answers\` / \`user_confirm_plan\`).
 3. Entrega p/ codar: \`os_handoff "<intencao>"\` — objetivo, escopo, o que NAO fazer, onde, como, porque.
 4. Ao fechar: \`os_remember\` + \`os_sync\`.
 
 ## Travas boas (peça confirmacao ao usuario)
-- Avancar de fase (discovery → execution → stabilization) e aprovar plano de tarefa \`complex\`. Só isso.
-
-## Invariante
-Custo de contexto = funcao da tarefa, nao do projeto. Nao coube no orcamento → **decomponha a tarefa**.
+- Avancar de fase e aprovar plano de tarefa \`complex\`. Só isso.
 
 Memoria e CORE vivem em \`.harness/.ai/\`. Nao carregue nada "por garantia".
 `;
 }
 
-export function scaffold(targetDir, { force = false } = {}) {
-  if (!targetDir) throw new Error("uso: scaffold <dir-alvo> [--force]");
-  const dst = resolve(targetDir);
+// ---- vendor: copia o Harness COMPLETO para .harness/ (preserva memoria) ------
+function vendor(dst, { force = false } = {}) {
   const H = join(dst, ".harness");
   const aiDst = join(H, ".ai");
   const memDir = join(aiDst, "memory");
   const projJson = join(aiDst, "project.json");
   const hasMemory = existsSync(join(memDir, "state-of-world.md")) || existsSync(projJson);
-
-  if (existsSync(H) && !force) {
-    throw new Error(`.harness ja existe em ${dst}. Para ATUALIZAR preservando a memoria use 'upgrade ${targetDir}'.`);
-  }
   const isUpgrade = hasMemory && force;
   mkdirSync(H, { recursive: true });
 
@@ -83,34 +71,23 @@ export function scaffold(targetDir, { force = false } = {}) {
     if (existsSync(join(aiDst, "specs"))) cpSync(join(aiDst, "specs"), join(backup, "specs"), { recursive: true });
   }
 
-  // copia FROM pacote (SRC) TO .harness/<rel>
   const copy = (rel, toRel) => { const s = join(SRC, rel); if (existsSync(s)) cpSync(s, join(H, toRel || rel), { recursive: true }); };
-
-  // 1. Motor + bocas dentro de .harness/
   copy("src"); copy("bin/os.mjs"); copy("bin/scaffold.mjs"); copy("server"); copy("extension");
-
-  // 2. CORE + conhecimento + onboarding em .harness/.ai/
   copy(".ai/CONSTITUTION.md"); copy(".ai/retrieval-index.json"); copy(".ai/retrieval-index.schema.json");
   copy(".ai/knowledge"); copy(".ai/bootstrap");
   mkdirSync(join(aiDst, "specs", "ADR"), { recursive: true });
   copy(".ai/specs/ADR/_TEMPLATE.md");
-
-  // 3. Docs internos dentro de .harness/
   copy("CONNECT.md"); copy("AGENTS.md");
-
-  // 4. .gitignore do proprio .harness (nao toca no .gitignore do projeto)
   writeFileSync(join(H, ".gitignore"), ".ai/runtime/\n.ai/backup-*/\nnode_modules/\n*.log\n", "utf8");
 
-  // 5. Memoria: preserva no upgrade; semeia o que faltar; zera na instalacao padrao
   mkdirSync(join(aiDst, "memory", "logs"), { recursive: true });
-  const proj = (targetDir.split(/[\\/]/).filter(Boolean).pop()) || "projeto";
+  const proj = (dst.split(/[\\/]/).filter(Boolean).pop()) || "projeto";
   const preserve = isUpgrade;
   const writeIf = (path, content) => { if (!preserve || !existsSync(path)) writeFileSync(path, content, "utf8"); };
-
   writeIf(join(aiDst, "memory", "state-of-world.md"),
 `# State of the World — Harness
 
-> Memoria quente. Reescrita a cada /sync (nao append-only). Alvo: <= 1200 tokens.
+> Memoria quente. Reescrita a cada /sync. Alvo: <= 1200 tokens.
 
 ## Identidade
 - **Projeto:** ${proj} (recem-inicializado com Harness).
@@ -119,32 +96,50 @@ export function scaffold(targetDir, { force = false } = {}) {
 - **Foco ativo:** onboarding. Rode 'init' e depois 'scan'.
 
 ## Decisoes vigentes
-- (nenhuma ainda — registre com 'remember decisions')
+- (nenhuma ainda)
 `);
-  writeIf(join(aiDst, "memory", "decisions-index.md"),
-`# Decisions Index
-
-| ID | Titulo | Status |
-|---|---|---|
-`);
+  writeIf(join(aiDst, "memory", "decisions-index.md"), `# Decisions Index\n\n| ID | Titulo | Status |\n|---|---|---|\n`);
   for (const [f, h] of [["tasks-log.md", "# Tasks Log (append-only)\n"], ["decisions-log.md", "# Decisions Log (append-only)\n"], ["errors-log.md", "# Errors & Solutions Log (append-only)\n"]])
     writeIf(join(aiDst, "memory", "logs", f), h);
   writeIf(projJson, JSON.stringify({ phase: "discovery", phase_set_at: new Date().toISOString(), created: new Date().toISOString() }, null, 2) + "\n");
 
-  // 6. Raiz do projeto: so o CLAUDE.md enxuto + os dotfiles de config (ocultos)
   const claudePath = join(dst, "CLAUDE.md");
   if (!existsSync(claudePath) || !preserve) writeFileSync(claudePath, rootClaude(proj), "utf8");
-  writeConfigs(dst);
 
-  const mode = isUpgrade ? "upgrade" : "fresh";
-  const next = isUpgrade
+  return { mode: isUpgrade ? "upgrade" : "fresh", backup };
+}
+
+const vsixRel = () => `.harness/extension/harness-lean-ai-os-${pkgVersion()}.vsix`;
+
+// ---- API publica ------------------------------------------------------------
+
+// Instalacao COMPLETA: .harness/ + CLAUDE.md + TODAS as configs de IDE.
+export function scaffold(targetDir, { force = false } = {}) {
+  if (!targetDir) throw new Error("uso: scaffold <dir-alvo> [--force]");
+  const dst = resolve(targetDir);
+  if (existsSync(join(dst, ".harness")) && !force) throw new Error(`.harness ja existe em ${dst}. Use 'upgrade ${targetDir}'.`);
+  const v = vendor(dst, { force });
+  CONFIG_TARGETS.forEach((t) => writeConfig(dst, t));
+  const next = v.mode === "upgrade"
     ? ["memoria preservada (backup em .harness/.ai/backup-*)", "reinicie a IDE", "node .harness/bin/os.mjs doctor"]
-    : ["reinicie a IDE para conectar o MCP", "node .harness/bin/os.mjs doctor", "node .harness/bin/os.mjs init"];
-  return { target: dst, mode, backup, next };
+    : ["reinicie a IDE para conectar o MCP", "node .harness/bin/os.mjs doctor", `extensao: Install from VSIX -> ${vsixRel()}`];
+  return { target: dst, mode: v.mode, backup: v.backup, configs: CONFIG_TARGETS, vsix: vsixRel(), next };
 }
 
 export function upgrade(targetDir) { return scaffold(targetDir, { force: true }); }
 
+// Instala/garante o Harness COMPLETO e escreve a(s) config(s) da(s) IDE(s) pedida(s).
+export function install(targetDir, targets) {
+  const dst = resolve(targetDir || ".");
+  const list = (!targets || targets.length === 0 || targets[0] === "all") ? CONFIG_TARGETS : targets;
+  for (const t of list) if (!CFG[t]) throw new Error(`alvo invalido: '${t}'. Use: ${CONFIG_TARGETS.join(" | ")} | all`);
+  let harnessCreated = false, mode = null, backup = null;
+  if (!existsSync(join(dst, ".harness", "bin", "os.mjs"))) { const v = vendor(dst, {}); harnessCreated = true; mode = v.mode; backup = v.backup; }
+  const written = list.map((t) => ({ target: t, file: writeConfig(dst, t) }));
+  return { target: dst, harnessCreated, mode, backup, written, vsix: vsixRel() };
+}
+
+// CLI direto
 if (process.argv[1] && process.argv[1].endsWith("scaffold.mjs")) {
   const args = process.argv.slice(2);
   const force = args.includes("--force");

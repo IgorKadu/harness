@@ -3,6 +3,10 @@
 Todas as mudancas relevantes deste projeto. Formato baseado em Keep a Changelog;
 versionamento semantico.
 
+## [0.4.2] - 2026-05-30
+### Fixed
+- **`install <ide>` agora instala o Harness COMPLETO (ADR-0031):** qualquer alvo (antigravity, cursor, windsurf, vscode, claude) garante o `.harness/` (motor + MCP + extensao + memoria) e escreve a config MCP apontando para o `.harness/` local — antes o alvo especifico so escrevia a config p/ npx, sem instalar nada.
+
 ## [0.4.1] - 2026-05-30
 ### Fixed
 - **CI:** smoke test do scaffold ajustado para a instalacao discreta (`.harness/bin/os.mjs`); adiciona `server/web.mjs` a checagem de sintaxe.
