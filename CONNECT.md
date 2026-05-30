@@ -55,8 +55,8 @@ node .harness/bin/os.mjs next "teste"    # o orquestrador responde
 Na IDE, peça à IA: *"rode o brief do Harness"*. Se o MCP conectou, ela responde com a situação do projeto.
 
 ## As 25 tools MCP
-`os_read_core, os_brief, os_capabilities, os_orchestrate, os_decompose, os_handoff, os_session,
-os_gaps, os_metrics, os_suggest_routes, os_subtasks, os_template, os_work, os_route, os_init,
-os_phase, os_recall, os_remember, os_sync, os_doctor, os_tokens, os_scan, os_find`.
+`os_read_core, os_brief, os_capabilities, os_orchestrate, os_decompose, os_handoff, os_smash,
+os_report, os_session, os_gaps, os_metrics, os_suggest_routes, os_subtasks, os_template, os_work,
+os_route, os_init, os_phase, os_recall, os_remember, os_sync, os_doctor, os_tokens, os_scan, os_find`.
 
 > Fluxo recomendado para a IA: `os_brief` → `os_orchestrate "<intenção>"` → `os_handoff` → seguir `actions`/`awaiting` → `os_remember` + `os_sync`.
