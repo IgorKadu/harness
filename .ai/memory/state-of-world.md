@@ -1,5 +1,5 @@
 # State of the World — Harness
-<!-- last-sync: 2026-05-30T00:35:04.385Z -->
+<!-- last-sync: 2026-05-30T01:00:53.593Z -->
 
 > **Memória quente.** Reescrito a cada `/sync` (não é append-only). Alvo: ≤ 1200 tokens.
 > Responde "onde paramos" sem nunca inchar. Profundidade histórica → `os recall <termo>`.

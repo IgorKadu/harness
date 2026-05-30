@@ -12,8 +12,8 @@ npx @igorkadu/harness install all
 
 Isso cria os arquivos de configuração do MCP **na sua pasta atual**, para todas as IDEs suportadas. Depois **reinicie a IDE** (servidores MCP só conectam ao abrir). Para uma só, troque `all` por `claude` | `vscode` | `cursor` | `windsurf` | `antigravity`.
 
-> Já instalado localmente (tem `bin/` no projeto)? Use `node bin/os.mjs install all`.
-> O comando dentro das configs é escolhido automaticamente: `node bin/os.mjs mcp` se houver `bin/` local, senão `npx -y @igorkadu/harness mcp`.
+> Já instalado localmente (tem `.harness/` no projeto)? Use `node .harness/bin/os.mjs install all`.
+> O comando dentro das configs é escolhido automaticamente: `node .harness/bin/os.mjs mcp` se houver `bin/` local, senão `npx -y @igorkadu/harness mcp`.
 
 ## O que cada IDE usa (criado pelo `install`)
 
@@ -36,7 +36,7 @@ Exemplo do que é gravado (VSCode):
 Não precisa compilar. O arquivo `.vsix` está em `extension/`:
 
 1. Paleta (`Ctrl+Shift+P`) → **Install from VSIX...**
-2. selecione `extension/harness-lean-ai-os-0.3.1.vsix`.
+2. selecione `.harness/extension/harness-lean-ai-os-0.4.0.vsix`.
 3. O ícone do Harness aparece na barra lateral.
 
 > Não vê a pasta `extension/`? Rode `npx @igorkadu/harnes

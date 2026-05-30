@@ -256,6 +256,7 @@ function banner() {
 // Comando MCP correto para o contexto: bin local (apos scaffold) ou npx.
 function mcpCmd() {
   const cwd = process.cwd();
+  if (existsSync(join(cwd, ".harness", "bin", "os.mjs"))) return { command: "node", args: [".harness/bin/os.mjs", "mcp"] };
   if (existsSync(join(cwd, "bin", "os.mjs"))) return { command: "node", args: ["bin/os.mjs", "mcp"] };
   return { command: "npx", args: ["-y", "@igorkadu/harness", "mcp"] };
 }
@@ -280,13 +281,13 @@ function cmdSetup() {
     const ok = existsDir(join(here, dir));
     console.log(`   ${ok ? color("green", "ok") : color("dim", "--")} ${label}  ${color("dim", dir + (ok ? "" : " (rode install)"))}`);
   }
-  const localBin = existsSync(join(here, "bin", "os.mjs"));
+  const localBin = existsSync(join(here, ".harness", "bin", "os.mjs")) || existsSync(join(here, "bin", "os.mjs"));
   console.log("");
   console.log(color("bold", "   Proximos passos:"));
-  console.log(`   1. ${color("cyan", localBin ? "node bin/os.mjs install all" : "npx @igorkadu/harness install all")}   conecta o MCP nas IDEs`);
+  console.log(`   1. ${color("cyan", "npx @igorkadu/harness install all")}   conecta o MCP nas IDEs`);
   console.log(`   2. ${color("cyan", "reinicie a IDE")}                 servidores MCP so conectam no boot`);
-  console.log(`   3. ${color("cyan", localBin ? "node bin/os.mjs doctor" : "npx @igorkadu/harness doctor")}        valida a integridade`);
-  console.log(color("dim", "   Extensao VSCode: instale o .vsix de extension/ (Install from VSIX). Guia: CONNECT.md"));
+  console.log(`   3. ${color("cyan", localBin ? "node .harness/bin/os.mjs doctor" : "npx @igorkadu/harness doctor")}        valida a integridade`);
+  console.log(color("dim", "   Extensao VSCode: Install from VSIX -> .harness/extension/*.vsix. Guia: .harness/CONNECT.md"));
   console.log("");
 }
 
@@ -306,7 +307,7 @@ function cmdInstall(rest) {
     writeFileSync(join(cwd, file), JSON.stringify(json, null, 2) + "\n", "utf8");
     console.log(`   ${color("green", "ok")} ${t.padEnd(12)} -> ${file}`);
   }
-  const localBin = existsSync(join(cwd, "bin", "os.mjs"));
+  const localBin = existsSync(join(cwd, ".harness", "bin", "os.mjs")) || existsSync(join(cwd, "bin", "os.mjs"));
   if (!localBin) console.log(color("yellow", "\n   Aviso: nao achei bin/os.mjs aqui. As configs usam 'npx @igorkadu/harness mcp'."));
   console.log(color("dim", "\n   Reinicie a IDE para conectar o MCP. Detalhes em CONNECT.md.\n"));
 }

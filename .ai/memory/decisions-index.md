@@ -13,3 +13,4 @@
 | ADR-0027 | Camada de orquestração autoexecutável (pacote de interação para chat + extensão) | aceito |
 | ADR-0028 | Handoff estruturado + memória de sessão (chat-orquestrador) | aceito |
 | ADR-0029 | Evolução do orquestrador: métricas, rotas, subtarefas, templates, LLM opcional, web | aceito |
+| ADR-0030 | Instalacao discreta: tudo em .harness/ (raiz so com dotfiles + CLAUDE.md) | aceito |

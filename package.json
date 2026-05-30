@@ -1,6 +1,6 @@
 {
   "name": "@igorkadu/harness",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "type": "module",
   "description": "Harness — Lean AI OS: a ferramenta que ajuda a criar outras ferramentas. Contexto por tarefa, nao por projeto (retrieval-first).",
   "bin": {

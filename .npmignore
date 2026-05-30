@@ -4,4 +4,3 @@
 .git/
 node_modules/
 *.log
-extension/*.vsix

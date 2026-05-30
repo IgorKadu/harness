@@ -2,7 +2,7 @@
   "name": "harness-lean-ai-os",
   "displayName": "Harness — Lean AI OS",
   "description": "Chat-orquestrador do Harness: conversa com voce (orienta, pergunta, recomenda), estrutura tudo e entrega a LLM um handoff pronto (objetivo, escopo, o que NAO fazer, onde esta o codigo, como e porque). Mesmo motor do MCP.",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "publisher": "igorkadu",
   "license": "MIT",
   "engines": {

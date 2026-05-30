@@ -3,6 +3,13 @@
 Todas as mudancas relevantes deste projeto. Formato baseado em Keep a Changelog;
 versionamento semantico.
 
+## [0.4.0] - 2026-05-30
+### Changed
+- **Instalacao discreta (ADR-0030):** todo o Harness agora vive em um unico diretorio oculto **`.harness/`** (motor + bocas + `.ai/`). Na raiz do projeto ficam so os dotfiles de config das IDEs e um `CLAUDE.md` enxuto.
+- Comandos passam a ser `node .harness/bin/os.mjs <cmd>`; configs MCP apontam para `.harness/bin/os.mjs`.
+- `scaffold`/`upgrade` operam sobre `.harness/`, preservando memoria + fase (backup em `.harness/.ai/backup-*`).
+- O `.vsix` da extensao agora viaja no pacote e e vendorizado em `.harness/extension/`.
+
 ## [0.3.1] - 2026-05-30
 ### Fixed
 - **`install`/`setup` gravam na pasta do projeto** (antes escreviam na pasta do pacote via npx — as configs MCP "sumiam"). O comando MCP nas configs e escolhido automaticamente (`node bin/os.mjs mcp` local ou `npx -y @igorkadu/harness mcp`).
@@ -47,5 +54,4 @@ versionamento semantico.
   acoes e `awaiting`); `os_decompose`/`os decompose` quebra tarefas que estouram o orcamento.
 - **Servidor MCP** (`server/mcp.mjs`) com 16 tools (stdio, JSON-RPC, zero-dep).
 - **Extensao VSCode** (`extension/`): painel visual que consome o mesmo motor via CLI `--json`.
-- Configs de conexao para Claude Code, VSCode (`.vscode/mcp.json`), Antigravity/Gemini.
-- `CONNECT.md` (guia de conexao) e `scaffold` que instala tudo num projeto-alvo.
+- Configs de conexao para Cla

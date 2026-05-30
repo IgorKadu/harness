@@ -17,3 +17,4 @@
 2026-05-29 | fase: discovery -> execution
 2026-05-29 | ADR-0028 v0.2.0: handoff + sessao + chat-orquestrador + CLI install/banner; MCP 18 tools
 2026-05-29 | upgrade-safe: scaffold detecta memoria; os upgrade preserva .ai/memory+fase com backup; instalacao zerada so sem memoria
+2026-05-30 | ADR-0030 v0.4.0: instalacao discreta, tudo em .harness/
