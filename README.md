@@ -64,6 +64,14 @@ As **únicas** vezes em que o Harness para para te perguntar algo são duas (as 
 
 ---
 
+## O fluxo "smash" (Usuário → Harness → LLM)
+
+1. Converse com o **painel do Harness** (extensão) ou pelo MCP. No fim, ele salva tudo em `.harness/.ai/handoff.md` — objetivo, escopo, o que **não** fazer, onde mexer, o que falta.
+2. No chat da IDE (com a LLM), digite **`smash`**. A LLM lê o handoff (tool `os_smash`), executa seguindo o Harness e, ao terminar, registra o que fez (`os_report`).
+3. Na próxima interação, o Harness lê esse relatório e já sabe o andamento — define o próximo passo com contexto e memória.
+
+**Proteção:** o agente nunca edita a pasta `.harness/` (regra nas instruções + arquivos de ignore `.aiexclude`/`.cursorignore`/etc.). Só o seu projeto é alterado.
+
 ## Conectar com a sua ferramenta
 
 Um comando configura tudo automaticamente:
@@ -92,7 +100,7 @@ Um painel lateral que **conversa com você**, organiza a tarefa e entrega o resu
 
 1. No VSCode (ou Cursor/Windsurf/Antigravity), abra a paleta (`Ctrl+Shift+P`).
 2. Digite **"Install from VSIX"** e selecione.
-3. Escolha o arquivo **`.harness/extension/harness-lean-ai-os-0.4.3.vsix`** (dentro da pasta do Harness).
+3. Escolha o arquivo **`.harness/extension/harness-lean-ai-os-0.5.0.vsix`** (dentro da pasta do Harness).
 4. Pronto — o ícone do Harness aparece na barra lateral.
 
 > Se você não vê esse arquivo, rode a instalação primeiro (ela cria `.harness/`). Rode `npx @igorkadu/harness scaffold .` (ou `upgrade .`) primeiro — isso copia a extensão para o seu projeto.
@@ -142,7 +150,7 @@ node .harness/bin/os.mjs upgrade .             # atualiza o Harness preservando 
 | `sync` / `tokens` / `doctor` | Manutenção e integridade |
 | `install [alvo]` / `serve [porta]` / `upgrade [pasta]` | Conectar IDE · painel web · atualizar |
 
-A IA acessa exatamente os mesmos recursos via **23 ferramentas MCP** (`os_orchestrate`, `os_handoff`, `os_metrics`, …) — o CLI é o espelho delas.
+A IA acessa exatamente os mesmos recursos via **25 ferramentas MCP** (`os_orchestrate`, `os_handoff`, `os_metrics`, …) — o CLI é o espelho delas.
 </details>
 
 ---
@@ -172,4 +180,4 @@ Decisões de arquitetura (ADRs 0022–0029) ficam em `.ai/specs/ADR/`. Veja tamb
 ---
 
 ## Licença
-MIT — use, faça fork, publique. Versão atual: **v0.4.3**.
+MIT — use, faça fork, publique. Versão atual: **v0.5.0**.

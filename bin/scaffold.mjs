@@ -1,19 +1,18 @@
 #!/usr/bin/env node
-// Harness — Lean AI OS · instalador (ADR-0030/0031/0032): discreto, completo e portavel.
-// Tudo vive em .harness/. Qualquer 'install <ide>' GARANTE o .harness/ completo e escreve a
-// config MCP da IDE com CAMINHO ABSOLUTO para .harness/bin/os.mjs (funciona em qualquer IDE,
-// sem depender de ${workspaceFolder}/${CLAUDE_PROJECT_DIR} nem do cwd com que a IDE inicia).
+// Harness — Lean AI OS · instalador (ADR-0030..0033): discreto, completo, portavel e protegido.
+// Tudo vive em .harness/. 'install <ide>' GARANTE o .harness/ completo, escreve a config MCP
+// com CAMINHO ABSOLUTO, gera o arquivo de instrucoes da IDE e os arquivos de IGNORE que
+// protegem o .harness/ de ser editado/indexado pelo agente.
 
 import { cpSync, mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SRC = resolve(dirname(fileURLToPath(import.meta.url)), ".."); // raiz do pacote (origem)
+const SRC = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 function pkgVersion() { try { return JSON.parse(readFileSync(join(SRC, "package.json"), "utf8")).version || "0.0.0"; } catch { return "0.0.0"; } }
 
 export const CONFIG_TARGETS = ["claude", "vscode", "antigravity", "cursor", "windsurf"];
 
-// Caminho absoluto (com barras /) para o motor vendorizado — portavel no Windows e *nix.
 function osmjsAbs(dst) { return join(dst, ".harness", "bin", "os.mjs").split("\\").join("/"); }
 function mcpCfg(dst) { return { command: "node", args: [osmjsAbs(dst), "mcp"] }; }
 
@@ -35,39 +34,48 @@ function writeConfig(dst, target) {
 function instructions(proj) {
   return `# Instrucoes do Agente — ${proj} (powered by Harness · Lean AI OS)
 
-> O Harness (orquestrador) esta instalado em \`.harness/\`. Voce (IA) o aciona pelas **tools MCP**
-> (\`os_brief\`, \`os_orchestrate\`, \`os_handoff\`, …). CLI equivalente: \`node .harness/bin/os.mjs <cmd>\`.
+> O Harness (orquestrador) vive em \`.harness/\`. Voce (IA) o aciona pelas **tools MCP**
+> (\`os_brief\`, \`os_orchestrate\`, \`os_handoff\`, \`os_smash\`, \`os_report\`, …).
+
+## PROTECAO — LEIA PRIMEIRO (nao negociavel)
+- **NUNCA crie, edite, mova ou apague qualquer arquivo dentro de \`.harness/\`.** Ele e o sistema
+  operacional do projeto e deve permanecer intacto. A memoria do Harness so muda via tools \`os_*\`.
+- Faca alteracoes de codigo **apenas no projeto** (fora de \`.harness/\`).
+- \`.harness/\` esta nos arquivos de ignore (\`.aiexclude\`, \`.cursorignore\`, etc.) — nao o reindexe.
+
+## Comando "smash" (canal Usuario -> Harness -> LLM)
+Quando o usuario disser **smash** (ou "siga o handoff"):
+1. chame a tool \`os_smash\` (ou leia o conteudo que ela retorna) — e o handoff alinhado entre Usuario e Harness;
+2. **execute** seguindo objetivo/escopo/onde/como/o-que-nao-fazer do handoff;
+3. ao terminar, chame \`os_report\` com um resumo do que voce fez — o Harness le isso na proxima vez.
 
 ## Protocolo (toda mensagem)
-1. Situacao: tool \`os_brief\` — fase, postura de dialogo e proximo passo.
-2. Tarefa: \`os_orchestrate "<intencao>"\` — classifica + perguntas guiadas + decomposicao + acoes + \`awaiting\`.
-   Siga o \`awaiting\` (so pausa em \`user_answers\` / \`user_confirm_plan\`).
-3. Entrega p/ codar: \`os_handoff "<intencao>"\` — objetivo, escopo, o que NAO fazer, onde, como, porque.
-4. Ao fechar: \`os_remember\` + \`os_sync\`.
+1. \`os_brief\` — fase, postura, handoff pendente e ultimo relatorio.
+2. \`os_orchestrate "<intencao>"\` — classifica + perguntas + decomposicao + acoes + \`awaiting\`.
+3. \`os_handoff "<intencao>"\` — entrega definida; \`os_smash\` para seguir o handoff atual.
+4. Feche com \`os_report\` (o que foi feito) + \`os_remember\` + \`os_sync\`.
 
 ## Travas boas (peça confirmacao ao usuario)
-- Avancar de fase (discovery → execution → stabilization) e aprovar plano de tarefa \`complex\`. Só isso.
-
-## Invariante
-Custo de contexto = funcao da tarefa, nao do projeto. Nao coube → **decomponha a tarefa**.
+- Avancar de fase e aprovar plano de tarefa \`complex\`. Só isso.
 
 Memoria e CORE vivem em \`.harness/.ai/\`. Nao carregue nada "por garantia".
 `;
 }
 
-// Arquivos de instrucao por ecossistema (mesmo conteudo, nomes que cada IDE procura).
-const INSTRUCTION_FILES = {
-  claude: "CLAUDE.md",        // Claude Code
-  antigravity: "GEMINI.md",   // Antigravity / Gemini
-  cursor: "AGENTS.md",        // Cursor e padrao cross-tool
-  windsurf: "AGENTS.md",
-  vscode: "AGENTS.md",
-};
+const INSTRUCTION_FILES = { claude: "CLAUDE.md", antigravity: "GEMINI.md", cursor: "AGENTS.md", windsurf: "AGENTS.md", vscode: "AGENTS.md" };
 function writeInstructions(dst, proj, targets, preserve) {
   const names = new Set(["AGENTS.md", ...targets.map((t) => INSTRUCTION_FILES[t]).filter(Boolean)]);
-  for (const name of names) {
-    const p = join(dst, name);
-    if (!preserve || !existsSync(p)) writeFileSync(p, instructions(proj), "utf8");
+  for (const name of names) { const p = join(dst, name); if (!preserve || !existsSync(p)) writeFileSync(p, instructions(proj), "utf8"); }
+}
+
+// Arquivos de ignore que protegem o .harness/ do indice/edicao do agente (todos sintaxe .gitignore).
+const IGNORE_FILES = [".aiexclude", ".geminiignore", ".cursorignore", ".cursorindexingignore", ".codeiumignore", ".aiignore"];
+function writeIgnores(dst, preserve) {
+  const body = "# Protege o Harness: o agente NAO deve indexar/editar .harness/\n.harness/\n";
+  for (const f of IGNORE_FILES) {
+    const p = join(dst, f);
+    if (existsSync(p)) { const cur = readFileSync(p, "utf8"); if (!cur.includes(".harness/")) writeFileSync(p, cur.replace(/\s*$/, "") + "\n.harness/\n", "utf8"); }
+    else writeFileSync(p, body, "utf8");
   }
 }
 
@@ -98,7 +106,7 @@ function vendor(dst, { force = false } = {}) {
   mkdirSync(join(aiDst, "specs", "ADR"), { recursive: true });
   copy(".ai/specs/ADR/_TEMPLATE.md");
   copy("CONNECT.md");
-  writeFileSync(join(H, ".gitignore"), ".ai/runtime/\n.ai/backup-*/\nnode_modules/\n*.log\n", "utf8");
+  writeFileSync(join(H, ".gitignore"), ".ai/runtime/\n.ai/backup-*/\n.ai/handoff.md\n.ai/report.md\n.ai/session.json\n.ai/subsessions.json\nnode_modules/\n*.log\n", "utf8");
 
   mkdirSync(join(aiDst, "memory", "logs"), { recursive: true });
   const proj = (dst.split(/[\\/]/).filter(Boolean).pop()) || "projeto";
@@ -123,6 +131,7 @@ function vendor(dst, { force = false } = {}) {
     writeIf(join(aiDst, "memory", "logs", f), h);
   writeIf(projJson, JSON.stringify({ phase: "discovery", phase_set_at: new Date().toISOString(), created: new Date().toISOString() }, null, 2) + "\n");
 
+  writeIgnores(dst, preserve);
   return { mode: isUpgrade ? "upgrade" : "fresh", backup, proj, preserve };
 }
 
@@ -149,7 +158,7 @@ export function install(targetDir, targets) {
   for (const t of list) if (!SHAPES[t]) throw new Error(`alvo invalido: '${t}'. Use: ${CONFIG_TARGETS.join(" | ")} | all`);
   let harnessCreated = false, mode = null, backup = null, proj = (dst.split(/[\\/]/).filter(Boolean).pop()) || "projeto", preserve = false;
   if (!existsSync(join(dst, ".harness", "bin", "os.mjs"))) { const v = vendor(dst, {}); harnessCreated = true; mode = v.mode; backup = v.backup; proj = v.proj; }
-  else { preserve = true; }
+  else { preserve = true; writeIgnores(dst, false); }
   const written = list.map((t) => ({ target: t, file: writeConfig(dst, t) }));
   writeInstructions(dst, proj, list, preserve);
   return { target: dst, harnessCreated, mode, backup, written, vsix: vsixRel() };

@@ -6,7 +6,7 @@
 import * as engine from "../src/engine.mjs";
 
 const PROTOCOL = "2024-11-05";
-const SERVER = { name: "harness-lean-ai-os", version: "0.4.3" };
+const SERVER = { name: "harness-lean-ai-os", version: "0.5.0" };
 const J = (o) => JSON.stringify(o, null, 2);
 
 const TOOLS = [
@@ -151,7 +151,7 @@ const TOOLS = [
     name: "os_handoff",
     description: "ENTREGA p/ a LLM (ADR-0028): spec estruturada da tarefa — objetivo, escopo, o que NAO fazer, pasta/arquivo alvo, onde esta o codigo, como e porque. Param 'answers' opcional (objetivo/escopo/etc). 'render'=true devolve markdown pronto p/ colar.",
     inputSchema: { type: "object", properties: { intent: { type: "string" }, answers: { type: "object" }, render: { type: "boolean" } }, required: ["intent"] },
-    run: ({ intent, answers, render }) => { const h = engine.handoff(intent, { answers: answers || {} }); return render ? engine.renderHandoff(h) : J(h); },
+    run: ({ intent, answers, render }) => { const r = engine.handoffToFile(intent, { answers: answers || {} }); return (render === false) ? J(r.handoff) : (engine.renderHandoff(r.handoff) + "\n\n(salvo em " + r.path + ")"); },
   },
   {
     name: "os_session",
@@ -198,6 +198,18 @@ const TOOLS = [
     description: "Template de projeto (roadmap #10): seed de objetivo, primeiros passos, o que NAO fazer e triggers por tipo. kind=api|web|cli|lib.",
     inputSchema: { type: "object", properties: { kind: { type: "string", enum: engine.TEMPLATE_KINDS } }, required: ["kind"] },
     run: ({ kind }) => J(engine.template(kind)),
+  },
+  {
+    name: "os_smash",
+    description: "SMASH (ADR-0033): devolve o handoff.md atual — estado/diretrizes do projeto alinhados entre Usuario e Harness. A LLM chama isto, SEGUE o handoff e ao terminar registra o que fez via os_report. Canal Usuario->Harness->LLM.",
+    inputSchema: { type: "object", properties: {} },
+    run: () => { const h = engine.readHandoff(); return h.exists ? h.text : "Nenhum handoff pendente. Rode os_orchestrate/os_session ou os_handoff primeiro."; },
+  },
+  {
+    name: "os_report",
+    description: "A LLM submete o documento do que foi feito. O Harness guarda em .harness/.ai/report.md e o LE na proxima interacao p/ saber o andamento. Feche toda tarefa com isto.",
+    inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"] },
+    run: ({ text }) => { const r = engine.submitReport(text); return "Relatorio salvo em " + r.path + " (" + r.stamp + ")."; },
   },
 ];
 

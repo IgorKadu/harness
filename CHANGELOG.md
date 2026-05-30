@@ -3,6 +3,17 @@
 Todas as mudancas relevantes deste projeto. Formato baseado em Keep a Changelog;
 versionamento semantico.
 
+## [0.5.0] - 2026-05-30
+### Added
+- **Canal Usuario<->Harness<->LLM (ADR-0033):** `handoff.md` gerado automaticamente ao fim do dialogo; comando **`smash`** (tools `os_smash`/`os_report`) faz a LLM seguir o handoff e devolver um relatorio que o Harness le na proxima interacao (`os_brief` mostra `pendingHandoff`/`lastReport`). MCP agora com **25 tools**.
+- **Slot de LLM secundaria (opcional):** a extensao expoe `harness.llm.endpoint/apiKey/model` (compativel com OpenAI, ex. Ollama local) — determinismo zero-dep segue como padrao.
+### Fixed
+- **scan/work analisam o PROJETO, nao o Harness:** o motor separa `ROOT` (.harness) de `PROJECT_ROOT`; `.harness/` e ignorado. Antes mapeava os proprios arquivos do Harness.
+### Security
+- **Protecao do `.harness/`:** regra dura nas instrucoes (CLAUDE/GEMINI/AGENTS) + arquivos de ignore por IDE (`.aiexclude`, `.geminiignore`, `.cursorignore`, `.codeiumignore`, `.aiignore`) — o agente nao edita/indexa o Harness; so o projeto.
+### Changed
+- Extensao: botoes scan/work removidos; ao concluir, salva o handoff e instrui o usuario a digitar `smash` no chat da IDE.
+
 ## [0.4.3] - 2026-05-30
 ### Fixed
 - **Config MCP portavel (ADR-0032):** usa caminho ABSOLUTO para `.harness/bin/os.mjs` em vez de `${workspaceFolder}`/`${CLAUDE_PROJECT_DIR}` (que o Antigravity nao expandia -> "Cannot find module"). Conecta em qualquer IDE.

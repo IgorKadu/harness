@@ -10,3 +10,5 @@
 2026-05-27 | complex | estabilizacao v0.1: autonomia + sync inteligente + bin unificado + configs 3 ambientes + scaffolder + README | validado
 2026-05-29 | roadmap #1-2: os_gaps (o que falta) + retomada/refino de sessao; MCP 19 tools; docs atualizadas
 2026-05-29 | roadmap concluido (v0.3.0): metrics, routes, subtasks, templates, LLM opcional, painel web (os serve), +install cursor/windsurf, acoes->sessao; MCP 23 tools
+2026-05-30 | LLM report recebido (2026-05-30)
+2026-05-30 | LLM report recebido (2026-05-30)

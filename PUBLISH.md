@@ -18,11 +18,11 @@ npm pack --dry-run                     # ve exatamente o que vai pro npm (files[
 git remote -v                       # confirme; se faltar o origin, adicione a linha abaixo
 git remote add origin https://github.com/IgorKadu/harness.git   # pule se ja existir
 git add -A
-git commit -m "feat: orquestrador v0.4.3 + MCP 23 tools + extensao + painel web + upgrade-safe (preserva memoria)"
+git commit -m "feat: orquestrador v0.5.0 + MCP 25 tools + extensao + painel web + upgrade-safe (preserva memoria)"
 git branch -M main
 git push -u origin main
-git tag v0.4.3
-git push origin v0.4.3
+git tag v0.5.0
+git push origin v0.5.0
 ```
 Confirme: `git log --oneline -1` deve mostrar o commit acima e `git status` "working tree clean".
 
@@ -42,7 +42,7 @@ npx @igorkadu/harness upgrade .          # projeto que JA usa Harness: atualiza 
 ## 3. Extensao VSCode (opcional, canal separado)
 ```bash
 npm i -g @vscode/vsce
-cd extension && vsce package           # gera harness-lean-ai-os-0.4.3.vsix
+cd extension && vsce package           # gera harness-lean-ai-os-0.5.0.vsix
 # publicar no Marketplace exige um publisher e PAT:
 # vsce login igorkadu && vsce publish
 ```

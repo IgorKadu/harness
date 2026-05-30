@@ -53,21 +53,11 @@ class OrchestratorView {
         } else if (msg.type === "copyHandoff") {
           await vscode.env.clipboard.writeText(msg.text);
           vscode.window.showInformationMessage("Harness: handoff copiado — cole no chat da LLM.");
-        } else if (msg.type === "saveHandoff") {
+        } else if (msg.type === "openHandoff") {
           const root = workspaceRoot();
-          const uri = vscode.Uri.file(path.join(root, ".ai", "runtime", "handoff.md"));
-          await vscode.workspace.fs.writeFile(uri, Buffer.from(msg.text, "utf8"));
-          const doc = await vscode.workspace.openTextDocument(uri);
-          vscode.window.showTextDocument(doc);
-        } else if (msg.type === "runAction") {
-          const map = { scan: ["scan"], work: ["work", msg.intent], decompose: ["decompose", msg.intent] };
-          const a = map[msg.action];
-          if (a) {
-            const out = await runHarness(a);
-            try { await runHarness(["session", "note", msg.action + " executado:\n" + out.slice(0, 400)]); } catch { /* sem sessao */ }
-            view.webview.postMessage({ type: "raw", text: out });
-            const st = await sessionJSON(["status"]); view.webview.postMessage({ type: "session", session: st });
-          }
+          const uri = vscode.Uri.file(path.join(root, ".harness", ".ai", "handoff.md"));
+          try { const doc = await vscode.workspace.openTextDocument(uri); vscode.window.showTextDocument(doc); }
+          catch { vscode.window.showWarningMessage("Harness: handoff.md ainda nao foi gerado. Conclua a conversa no painel."); }
         }
       } catch (e) {
         view.webview.postMessage({ type: "error", text: String(e.message || e) });
@@ -111,13 +101,13 @@ class OrchestratorView {
      (h.falta&&h.falta.length)?("O que falta: "+h.falta.map(g=>g.kind+":"+g.path).join("; ")):"",
      "Como: "+h.como,"Porque: "+h.porque,"Fecho: "+h.fecho].filter(Boolean).join("\\n");
    const wrap=document.createElement("div");wrap.className="handoff";
-   wrap.innerHTML='<b>Handoff pronto para a LLM</b><pre>'+esc(md)+'</pre>';
+   wrap.innerHTML='<b>Handoff salvo em .harness/.ai/handoff.md</b>'
+     +'<p class="muted">No chat da IDE (com a LLM) digite <b>smash</b>: a LLM le este handoff e executa seguindo o Harness; ao terminar ela registra o que fez (os_report).</p>'
+     +'<pre>'+esc(md)+'</pre>';
    const row=document.createElement("div");row.className="row";
-   const b1=document.createElement("button");b1.textContent="Copiar p/ a LLM";b1.onclick=()=>vs.postMessage({type:"copyHandoff",text:md});
-   const b2=document.createElement("button");b2.className="sec";b2.textContent="Salvar handoff.md";b2.onclick=()=>vs.postMessage({type:"saveHandoff",text:md});
-   const b3=document.createElement("button");b3.className="sec";b3.textContent="Localizar codigo (scan)";b3.onclick=()=>vs.postMessage({type:"runAction",action:"scan"});
-   const b4=document.createElement("button");b4.className="sec";b4.textContent="Working-set (work)";b4.onclick=()=>vs.postMessage({type:"runAction",action:"work",intent:h.intent});
-   row.append(b1,b2,b3,b4);wrap.appendChild(row);log.appendChild(wrap);log.scrollTop=log.scrollHeight;
+   const b1=document.createElement("button");b1.textContent="Copiar handoff";b1.onclick=()=>vs.postMessage({type:"copyHandoff",text:md});
+   const b2=document.createElement("button");b2.className="sec";b2.textContent="Abrir handoff.md";b2.onclick=()=>vs.postMessage({type:"openHandoff"});
+   row.append(b1,b2);wrap.appendChild(row);log.appendChild(wrap);log.scrollTop=log.scrollHeight;
  }
  let lastLen=0;
  function render(s){

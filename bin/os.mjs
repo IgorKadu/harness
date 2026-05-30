@@ -206,9 +206,23 @@ function cmdHandoff(rest) {
   const json = rest.includes("--json");
   const intent = rest.filter((x) => !x.startsWith("--")).join(" ").trim();
   if (!intent) die('uso: os handoff "<intencao>" [--json]');
-  const h = engine.handoff(intent, {});
-  if (json) { console.log(JSON.stringify(h, null, 2)); return; }
-  console.log(engine.renderHandoff(h));
+  const r = engine.handoffToFile(intent, {});
+  if (json) { console.log(JSON.stringify(r.handoff, null, 2)); return; }
+  console.log(engine.renderHandoff(r.handoff));
+  console.log(color("green", "\nok salvo em " + r.path));
+}
+
+function cmdSmash() {
+  const h = engine.readHandoff();
+  if (!h.exists) { console.log(color("yellow", "Nenhum handoff pendente. Rode 'next'/'session' ou 'handoff \"<intencao>\"' primeiro.")); return; }
+  console.log(h.text);
+}
+
+function cmdReport(rest) {
+  const text = rest.join(" ").trim();
+  if (!text) die('uso: os report "<o que foi feito>"');
+  const r = engine.submitReport(text);
+  console.log(color("green", "ok relatorio salvo em " + r.path));
 }
 
 function cmdSession(rest) {
@@ -343,7 +357,9 @@ ${color("bold", "Harness — Lean AI OS")}  ${color("dim", "(retrieval-first · 
 ${color("bold", "Orquestracao (ADR-0027):")}
   ${color("cyan", 'next "<intencao>"')}        pacote de interacao: classifica + perguntas + acoes (use --json p/ a extensao)
   ${color("cyan", 'decompose "<intencao>"')}   quebra tarefa grande em subtarefas
-  ${color("cyan", 'handoff "<intencao>"')}     gera a spec estruturada p/ a LLM (objetivo/escopo/nao-fazer/onde/como)
+  ${color("cyan", 'handoff "<intencao>"')}     gera/escreve a entrega p/ a LLM em .harness/.ai/handoff.md
+  ${color("cyan", "smash")}                    imprime o handoff atual (a LLM segue isto)
+  ${color("cyan", 'report "<txt>"')}            a LLM registra o que fez (.harness/.ai/report.md)
   ${color("cyan", 'gaps "<intencao>"')}        aponta o que falta (smells, sem teste, arquivo ausente)
   ${color("cyan", "session <start|answer|status|clear>")}  conversa do orquestrador (persiste e resume)
 ${color("bold", "Tarefa:")}
@@ -378,6 +394,8 @@ try {
   switch (cmd) {
     case "next": case "orchestrate": cmdOrchestrate(rest); break;
     case "handoff": cmdHandoff(rest); break;
+    case "smash": cmdSmash(); break;
+    case "report": cmdReport(rest); break;
     case "gaps": cmdGaps(rest); break;
     case "subtasks": cmdSubtasks(rest); break;
     case "routes": cmdRoutes(); break;
@@ -401,7 +419,6 @@ try {
     case "find": cmdFind(arg); break;
     case "mcp": import("../server/mcp.mjs").then((m) => m.start()); break;
     case "serve": import("../server/web.mjs").then((m) => m.start(Number(rest[0]) || 4173)); break;
-    case "scaffold": import("./scaffold.mjs").then((m) => { try { const a = rest.filter((x)=>!x.startsWith("--")); const r = m.scaffold(a[0], { force: rest.includes("--force") }); console.log(color("green", "ok " + r.mode + " -> " + r.target)); if (r.backup) console.log(color("dim", "   backup: " + r.backup)); r.next.forEach((n)=>console.log("   " + n)); } catch (e) { die(e.message); } }); break;
     case "upgrade": import("./scaffold.mjs").then((m) => { try { const a = rest.filter((x)=>!x.startsWith("--")); const r = m.upgrade(a[0] || "."); console.log(color("green", "ok " + r.mode + " -> " + r.target)); if (r.backup) console.log(color("dim", "   backup: " + r.backup)); r.next.forEach((n)=>console.log("   " + n)); } catch (e) { die(e.message); } }); break;
     case "setup": cmdSetup(); break;
     case "install": cmdInstall(rest); break;

@@ -3,11 +3,13 @@
 // Todas as bocas (CLI, MCP, futura extensao) importam daqui. Zero duplicacao (ADR-0023).
 
 import { readFileSync, writeFileSync, existsSync, appendFileSync, readdirSync } from "node:fs";
-import { join, dirname, resolve } from "node:path";
+import { join, dirname, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(__dirname, "..");
+// Raiz do PROJETO a analisar: o pai de .harness/ quando instalado; senao a propria ROOT.
+export const PROJECT_ROOT = basename(ROOT) === ".harness" ? dirname(ROOT) : ROOT;
 const AI = join(ROOT, ".ai");
 const INDEX_PATH = join(AI, "retrieval-index.json");
 
@@ -294,6 +296,8 @@ export function brief() {
     posture: { questioning: p.questioning, focus: p.focus, guidance: p.guidance },
     core: [".ai/CONSTITUTION.md", ".ai/memory/state-of-world.md"],
     recommended_next: caps.recommended_next,
+    pendingHandoff: existsSync(HANDOFF_PATH),
+    lastReport: readReport(),
   };
 }
 
@@ -336,7 +340,7 @@ export function initPlan(kind) {
 import { statSync, mkdirSync } from "node:fs";
 
 const CODEMAP_PATH = join(AI, "runtime", "code-map.json");
-const SCAN_IGNORE = new Set(["node_modules", ".git", ".ai", "dist", "build", "coverage", ".vscode", ".idea", "tmp", "out"]);
+const SCAN_IGNORE = new Set([".harness", "node_modules", ".git", ".ai", "dist", "build", "coverage", ".vscode", ".idea", ".cursor", ".gemini", ".claude", ".windsurf", ".agents", "tmp", "out", ".next", ".nuxt", "vendor"]);
 const CODE_EXT = {
   ".mjs": "javascript", ".cjs": "javascript", ".js": "javascript", ".jsx": "javascript",
   ".ts": "typescript", ".tsx": "typescript", ".py": "python", ".go": "go", ".rs": "rust",
@@ -396,12 +400,12 @@ function detectStack(rootAbs) {
 }
 
 export function scan() {
-  const files = walkCode(ROOT, ROOT, []);
+  const files = walkCode(PROJECT_ROOT, PROJECT_ROOT, []);
   const out = [];
   const smells = [];
   let totalLines = 0;
   for (const abs of files) {
-    const rel = abs.slice(ROOT.length + 1).split("\\").join("/");
+    const rel = abs.slice(PROJECT_ROOT.length + 1).split("\\").join("/");
     const content = readIfExists(abs);
     if (content == null) continue;
     const lines = content.split("\n").length;
@@ -414,7 +418,7 @@ export function scan() {
   out.sort((a, b) => a.path.localeCompare(b.path));
   const map = {
     generated: new Date().toISOString(),
-    root: ROOT.split("\\").join("/"),
+    root: PROJECT_ROOT.split("\\").join("/"),
     stack: detectStack(ROOT),
     fileCount: out.length,
     totalLines,
@@ -458,7 +462,7 @@ export function codeMapStale() {
   const map = loadCodeMap();
   if (!map) return true;
   const gen = new Date(map.generated).getTime();
-  const files = walkCode(ROOT, ROOT, []);
+  const files = walkCode(PROJECT_ROOT, PROJECT_ROOT, []);
   if (files.length !== map.fileCount) return true;
   for (const abs of files) { try { if (statSync(abs).mtimeMs > gen) return true; } catch { /* */ } }
   return false;
@@ -655,7 +659,10 @@ export function answerSession(value, { intent } = {}) {
   s.awaiting = s.questionQueue.length ? "user_answers" : "ready_handoff";
   const prompt = nextPrompt(s);
   s.log.push({ role: "orchestrator", at: new Date().toISOString(), text: prompt });
-  if (!s.questionQueue.length) s.handoff = handoff(s.intent, { answers: s.answers });
+  if (!s.questionQueue.length) {
+    s.handoff = handoff(s.intent, { answers: s.answers });
+    try { writeHandoffFile(s.handoff, s); s.handoffPath = ".harness/.ai/handoff.md"; } catch { /* */ }
+  }
   return writeSession(s);
 }
 
@@ -841,3 +848,62 @@ export function template(kind) {
   return { kind, ...t };
 }
 export const TEMPLATE_KINDS = Object.keys(TEMPLATES);
+
+// ============================================================================
+// CANAL DE COMUNICACAO User <-> Harness <-> LLM (ADR-0033)
+// handoff.md: o Harness escreve o estado/diretrizes do projeto p/ a LLM ler ('smash').
+// report.md:  a LLM escreve o que fez; o Harness le na proxima interacao p/ saber o andamento.
+// Ambos vivem em .harness/.ai/ e sao trocados via tools MCP (nao dependem de leitura de arquivo).
+// ============================================================================
+
+const HANDOFF_PATH = join(AI, "handoff.md");
+const REPORT_PATH = join(AI, "report.md");
+
+// Escreve o handoff.md (markdown rico) — chamado ao fim do dialogo do orquestrador.
+export function writeHandoffFile(h, session = null) {
+  try { if (codeMapStale()) scan(); } catch { /* best-effort */ }
+  const md = [];
+  md.push("<!-- gerado pelo Harness · nao editar manualmente -->");
+  md.push("<!-- stamp: " + new Date().toISOString() + " -->");
+  md.push("");
+  md.push(renderHandoff(h));
+  const rep = readReport();
+  if (rep.exists) { md.push("\n---\n## Ultimo relatorio da LLM (contexto)\n" + rep.text.split("\n").slice(0, 30).join("\n")); }
+  if (session && session.log && session.log.length) {
+    md.push("\n---\n## Resumo do dialogo Usuario<->Harness");
+    session.log.filter((m) => m.role === "user").forEach((m, i) => md.push(`${i + 1}. ${m.text}`));
+  }
+  md.push("\n---\n> LLM: siga este handoff. Ao concluir, registre o que fez via a tool `os_report` (ou escrevendo .harness/.ai/report.md).");
+  writeFileSync(HANDOFF_PATH, md.join("\n") + "\n", "utf8");
+  return { path: ".harness/.ai/handoff.md", abs: HANDOFF_PATH };
+}
+
+// Gera o handoff a partir de uma intencao e ja escreve o arquivo. (CLI/MCP)
+export function handoffToFile(intent, { answers = {} } = {}) {
+  const h = handoff(intent, { answers });
+  const w = writeHandoffFile(h);
+  return { ...w, handoff: h };
+}
+
+// Le o handoff.md atual (o que a LLM deve seguir no 'smash').
+export function readHandoff() {
+  const text = readIfExists(HANDOFF_PATH);
+  return { exists: text != null, path: ".harness/.ai/handoff.md", text: text || "" };
+}
+
+// A LLM submete o documento do que foi feito; o Harness guarda p/ ler na proxima interacao.
+export function submitReport(text) {
+  if (!text || !text.trim()) throw new Error("report vazio");
+  const stamp = new Date().toISOString();
+  writeFileSync(REPORT_PATH, `<!-- relatorio da LLM · stamp: ${stamp} -->\n\n` + text.trim() + "\n", "utf8");
+  try { remember("tasks", "LLM report recebido (" + stamp.slice(0, 10) + ")"); } catch { /* */ }
+  return { path: ".harness/.ai/report.md", stamp };
+}
+
+// Le o ultimo relatorio da LLM (resumo curto para o brief/orquestrador).
+export function readReport() {
+  const text = readIfExists(REPORT_PATH);
+  if (text == null) return { exists: false, summary: null };
+  const body = text.replace(/<!--[^>]*-->/g, "").trim();
+  return { exists: true, path: ".harness/.ai/report.md", summary: body.split("\n").filter(Boolean).slice(0, 3).join(" ").slice(0, 240) };
+}

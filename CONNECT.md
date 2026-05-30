@@ -41,7 +41,7 @@ A config gravada tem este formato (caminho absoluto preenchido na sua máquina):
 Não precisa compilar. O `.vsix` está em `.harness/extension/`:
 
 1. Paleta (`Ctrl+Shift+P`) → **Install from VSIX...**
-2. selecione `.harness/extension/harness-lean-ai-os-0.4.3.vsix`.
+2. selecione `.harness/extension/harness-lean-ai-os-0.5.0.vsix`.
 3. O ícone do Harness aparece na barra lateral.
 
 Funciona em VSCode, Cursor, Windsurf e Antigravity (todas baseadas no VSCode).
@@ -54,7 +54,7 @@ node .harness/bin/os.mjs next "teste"    # o orquestrador responde
 ```
 Na IDE, peça à IA: *"rode o brief do Harness"*. Se o MCP conectou, ela responde com a situação do projeto.
 
-## As 23 tools MCP
+## As 25 tools MCP
 `os_read_core, os_brief, os_capabilities, os_orchestrate, os_decompose, os_handoff, os_session,
 os_gaps, os_metrics, os_suggest_routes, os_subtasks, os_template, os_work, os_route, os_init,
 os_phase, os_recall, os_remember, os_sync, os_doctor, os_tokens, os_scan, os_find`.
