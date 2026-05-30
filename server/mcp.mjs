@@ -6,7 +6,7 @@
 import * as engine from "../src/engine.mjs";
 
 const PROTOCOL = "2024-11-05";
-const SERVER = { name: "harness-lean-ai-os", version: "0.4.0" };
+const SERVER = { name: "harness-lean-ai-os", version: "0.4.1" };
 const J = (o) => JSON.stringify(o, null, 2);
 
 const TOOLS = [

@@ -3,6 +3,10 @@
 Todas as mudancas relevantes deste projeto. Formato baseado em Keep a Changelog;
 versionamento semantico.
 
+## [0.4.1] - 2026-05-30
+### Fixed
+- **CI:** smoke test do scaffold ajustado para a instalacao discreta (`.harness/bin/os.mjs`); adiciona `server/web.mjs` a checagem de sintaxe.
+
 ## [0.4.0] - 2026-05-30
 ### Changed
 - **Instalacao discreta (ADR-0030):** todo o Harness agora vive em um unico diretorio oculto **`.harness/`** (motor + bocas + `.ai/`). Na raiz do projeto ficam so os dotfiles de config das IDEs e um `CLAUDE.md` enxuto.
