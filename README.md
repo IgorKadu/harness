@@ -92,7 +92,7 @@ Um painel lateral que **conversa com você**, organiza a tarefa e entrega o resu
 
 1. No VSCode (ou Cursor/Windsurf/Antigravity), abra a paleta (`Ctrl+Shift+P`).
 2. Digite **"Install from VSIX"** e selecione.
-3. Escolha o arquivo **`.harness/extension/harness-lean-ai-os-0.4.2.vsix`** (dentro da pasta do Harness).
+3. Escolha o arquivo **`.harness/extension/harness-lean-ai-os-0.4.3.vsix`** (dentro da pasta do Harness).
 4. Pronto — o ícone do Harness aparece na barra lateral.
 
 > Se você não vê esse arquivo, rode a instalação primeiro (ela cria `.harness/`). Rode `npx @igorkadu/harness scaffold .` (ou `upgrade .`) primeiro — isso copia a extensão para o seu projeto.
@@ -172,4 +172,4 @@ Decisões de arquitetura (ADRs 0022–0029) ficam em `.ai/specs/ADR/`. Veja tamb
 ---
 
 ## Licença
-MIT — use, faça fork, publique. Versão atual: **v0.4.2**.
+MIT — use, faça fork, publique. Versão atual: **v0.4.3**.

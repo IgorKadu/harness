@@ -1,40 +1,42 @@
 #!/usr/bin/env node
-// Harness — Lean AI OS · instalador (ADR-0030/0031): instalacao DISCRETA e COMPLETA.
-// Tudo (motor + bocas + .ai + extensao) vive em .harness/. Qualquer 'install <ide>'
-// GARANTE o .harness/ completo e entao escreve a config MCP da IDE pedida.
-// Na raiz do projeto ficam so os dotfiles de config (ocultos) e um CLAUDE.md enxuto.
+// Harness — Lean AI OS · instalador (ADR-0030/0031/0032): discreto, completo e portavel.
+// Tudo vive em .harness/. Qualquer 'install <ide>' GARANTE o .harness/ completo e escreve a
+// config MCP da IDE com CAMINHO ABSOLUTO para .harness/bin/os.mjs (funciona em qualquer IDE,
+// sem depender de ${workspaceFolder}/${CLAUDE_PROJECT_DIR} nem do cwd com que a IDE inicia).
 
 import { cpSync, mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), ".."); // raiz do pacote (origem)
-
 function pkgVersion() { try { return JSON.parse(readFileSync(join(SRC, "package.json"), "utf8")).version || "0.0.0"; } catch { return "0.0.0"; } }
 
-// ---- configs MCP por IDE (sempre apontando para o .harness/ local) ----------
-const NODE_LOCAL = { command: "node", args: [".harness/bin/os.mjs", "mcp"] };
 export const CONFIG_TARGETS = ["claude", "vscode", "antigravity", "cursor", "windsurf"];
-const CFG = {
-  claude: { file: ".claude/settings.json", json: { mcpServers: { harness: { command: "node", args: ["${CLAUDE_PROJECT_DIR}/.harness/bin/os.mjs", "mcp"] } } } },
-  vscode: { file: ".vscode/mcp.json", json: { servers: { harness: { type: "stdio", ...NODE_LOCAL } } } },
-  antigravity: { file: ".gemini/settings.json", json: { mcpServers: { harness: { command: "node", args: ["${workspaceFolder}/.harness/bin/os.mjs", "mcp"] } } } },
-  cursor: { file: ".cursor/mcp.json", json: { mcpServers: { harness: { ...NODE_LOCAL } } } },
-  windsurf: { file: ".windsurf/mcp.json", json: { mcpServers: { harness: { ...NODE_LOCAL } } } },
+
+// Caminho absoluto (com barras /) para o motor vendorizado — portavel no Windows e *nix.
+function osmjsAbs(dst) { return join(dst, ".harness", "bin", "os.mjs").split("\\").join("/"); }
+function mcpCfg(dst) { return { command: "node", args: [osmjsAbs(dst), "mcp"] }; }
+
+const SHAPES = {
+  claude: { file: ".claude/settings.json", wrap: (c) => ({ mcpServers: { harness: c } }) },
+  vscode: { file: ".vscode/mcp.json", wrap: (c) => ({ servers: { harness: { type: "stdio", ...c } } }) },
+  antigravity: { file: ".gemini/settings.json", wrap: (c) => ({ mcpServers: { harness: c } }) },
+  cursor: { file: ".cursor/mcp.json", wrap: (c) => ({ mcpServers: { harness: c } }) },
+  windsurf: { file: ".windsurf/mcp.json", wrap: (c) => ({ mcpServers: { harness: c } }) },
 };
 function writeConfig(dst, target) {
-  const c = CFG[target];
-  if (!c) throw new Error(`alvo invalido: '${target}'. Use: ${CONFIG_TARGETS.join(" | ")} | all`);
-  mkdirSync(join(dst, c.file.split("/")[0]), { recursive: true });
-  writeFileSync(join(dst, c.file), JSON.stringify(c.json, null, 2) + "\n", "utf8");
-  return c.file;
+  const sh = SHAPES[target];
+  if (!sh) throw new Error(`alvo invalido: '${target}'. Use: ${CONFIG_TARGETS.join(" | ")} | all`);
+  mkdirSync(join(dst, sh.file.split("/")[0]), { recursive: true });
+  writeFileSync(join(dst, sh.file), JSON.stringify(sh.wrap(mcpCfg(dst)), null, 2) + "\n", "utf8");
+  return sh.file;
 }
 
-function rootClaude(proj) {
-  return `# CLAUDE.md — ${proj} (powered by Harness · Lean AI OS)
+function instructions(proj) {
+  return `# Instrucoes do Agente — ${proj} (powered by Harness · Lean AI OS)
 
 > O Harness (orquestrador) esta instalado em \`.harness/\`. Voce (IA) o aciona pelas **tools MCP**
-> (\`os_brief\`, \`os_orchestrate\`, \`os_handoff\`, …). O CLI equivalente e \`node .harness/bin/os.mjs <cmd>\`.
+> (\`os_brief\`, \`os_orchestrate\`, \`os_handoff\`, …). CLI equivalente: \`node .harness/bin/os.mjs <cmd>\`.
 
 ## Protocolo (toda mensagem)
 1. Situacao: tool \`os_brief\` — fase, postura de dialogo e proximo passo.
@@ -44,13 +46,31 @@ function rootClaude(proj) {
 4. Ao fechar: \`os_remember\` + \`os_sync\`.
 
 ## Travas boas (peça confirmacao ao usuario)
-- Avancar de fase e aprovar plano de tarefa \`complex\`. Só isso.
+- Avancar de fase (discovery → execution → stabilization) e aprovar plano de tarefa \`complex\`. Só isso.
+
+## Invariante
+Custo de contexto = funcao da tarefa, nao do projeto. Nao coube → **decomponha a tarefa**.
 
 Memoria e CORE vivem em \`.harness/.ai/\`. Nao carregue nada "por garantia".
 `;
 }
 
-// ---- vendor: copia o Harness COMPLETO para .harness/ (preserva memoria) ------
+// Arquivos de instrucao por ecossistema (mesmo conteudo, nomes que cada IDE procura).
+const INSTRUCTION_FILES = {
+  claude: "CLAUDE.md",        // Claude Code
+  antigravity: "GEMINI.md",   // Antigravity / Gemini
+  cursor: "AGENTS.md",        // Cursor e padrao cross-tool
+  windsurf: "AGENTS.md",
+  vscode: "AGENTS.md",
+};
+function writeInstructions(dst, proj, targets, preserve) {
+  const names = new Set(["AGENTS.md", ...targets.map((t) => INSTRUCTION_FILES[t]).filter(Boolean)]);
+  for (const name of names) {
+    const p = join(dst, name);
+    if (!preserve || !existsSync(p)) writeFileSync(p, instructions(proj), "utf8");
+  }
+}
+
 function vendor(dst, { force = false } = {}) {
   const H = join(dst, ".harness");
   const aiDst = join(H, ".ai");
@@ -77,7 +97,7 @@ function vendor(dst, { force = false } = {}) {
   copy(".ai/knowledge"); copy(".ai/bootstrap");
   mkdirSync(join(aiDst, "specs", "ADR"), { recursive: true });
   copy(".ai/specs/ADR/_TEMPLATE.md");
-  copy("CONNECT.md"); copy("AGENTS.md");
+  copy("CONNECT.md");
   writeFileSync(join(H, ".gitignore"), ".ai/runtime/\n.ai/backup-*/\nnode_modules/\n*.log\n", "utf8");
 
   mkdirSync(join(aiDst, "memory", "logs"), { recursive: true });
@@ -103,23 +123,18 @@ function vendor(dst, { force = false } = {}) {
     writeIf(join(aiDst, "memory", "logs", f), h);
   writeIf(projJson, JSON.stringify({ phase: "discovery", phase_set_at: new Date().toISOString(), created: new Date().toISOString() }, null, 2) + "\n");
 
-  const claudePath = join(dst, "CLAUDE.md");
-  if (!existsSync(claudePath) || !preserve) writeFileSync(claudePath, rootClaude(proj), "utf8");
-
-  return { mode: isUpgrade ? "upgrade" : "fresh", backup };
+  return { mode: isUpgrade ? "upgrade" : "fresh", backup, proj, preserve };
 }
 
 const vsixRel = () => `.harness/extension/harness-lean-ai-os-${pkgVersion()}.vsix`;
 
-// ---- API publica ------------------------------------------------------------
-
-// Instalacao COMPLETA: .harness/ + CLAUDE.md + TODAS as configs de IDE.
 export function scaffold(targetDir, { force = false } = {}) {
   if (!targetDir) throw new Error("uso: scaffold <dir-alvo> [--force]");
   const dst = resolve(targetDir);
   if (existsSync(join(dst, ".harness")) && !force) throw new Error(`.harness ja existe em ${dst}. Use 'upgrade ${targetDir}'.`);
   const v = vendor(dst, { force });
   CONFIG_TARGETS.forEach((t) => writeConfig(dst, t));
+  writeInstructions(dst, v.proj, CONFIG_TARGETS, v.preserve);
   const next = v.mode === "upgrade"
     ? ["memoria preservada (backup em .harness/.ai/backup-*)", "reinicie a IDE", "node .harness/bin/os.mjs doctor"]
     : ["reinicie a IDE para conectar o MCP", "node .harness/bin/os.mjs doctor", `extensao: Install from VSIX -> ${vsixRel()}`];
@@ -128,18 +143,18 @@ export function scaffold(targetDir, { force = false } = {}) {
 
 export function upgrade(targetDir) { return scaffold(targetDir, { force: true }); }
 
-// Instala/garante o Harness COMPLETO e escreve a(s) config(s) da(s) IDE(s) pedida(s).
 export function install(targetDir, targets) {
   const dst = resolve(targetDir || ".");
   const list = (!targets || targets.length === 0 || targets[0] === "all") ? CONFIG_TARGETS : targets;
-  for (const t of list) if (!CFG[t]) throw new Error(`alvo invalido: '${t}'. Use: ${CONFIG_TARGETS.join(" | ")} | all`);
-  let harnessCreated = false, mode = null, backup = null;
-  if (!existsSync(join(dst, ".harness", "bin", "os.mjs"))) { const v = vendor(dst, {}); harnessCreated = true; mode = v.mode; backup = v.backup; }
+  for (const t of list) if (!SHAPES[t]) throw new Error(`alvo invalido: '${t}'. Use: ${CONFIG_TARGETS.join(" | ")} | all`);
+  let harnessCreated = false, mode = null, backup = null, proj = (dst.split(/[\\/]/).filter(Boolean).pop()) || "projeto", preserve = false;
+  if (!existsSync(join(dst, ".harness", "bin", "os.mjs"))) { const v = vendor(dst, {}); harnessCreated = true; mode = v.mode; backup = v.backup; proj = v.proj; }
+  else { preserve = true; }
   const written = list.map((t) => ({ target: t, file: writeConfig(dst, t) }));
+  writeInstructions(dst, proj, list, preserve);
   return { target: dst, harnessCreated, mode, backup, written, vsix: vsixRel() };
 }
 
-// CLI direto
 if (process.argv[1] && process.argv[1].endsWith("scaffold.mjs")) {
   const args = process.argv.slice(2);
   const force = args.includes("--force");

@@ -15,3 +15,4 @@
 | ADR-0029 | Evolução do orquestrador: métricas, rotas, subtarefas, templates, LLM opcional, web | aceito |
 | ADR-0030 | Instalacao discreta: tudo em .harness/ (raiz so com dotfiles + CLAUDE.md) | aceito |
 | ADR-0031 | install instala o Harness completo (qualquer IDE) + config local | aceito |
+| ADR-0032 | Config MCP com caminho absoluto + instrucoes por ecossistema (CLAUDE/GEMINI/AGENTS) | aceito |

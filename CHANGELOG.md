@@ -3,6 +3,12 @@
 Todas as mudancas relevantes deste projeto. Formato baseado em Keep a Changelog;
 versionamento semantico.
 
+## [0.4.3] - 2026-05-30
+### Fixed
+- **Config MCP portavel (ADR-0032):** usa caminho ABSOLUTO para `.harness/bin/os.mjs` em vez de `${workspaceFolder}`/`${CLAUDE_PROJECT_DIR}` (que o Antigravity nao expandia -> "Cannot find module"). Conecta em qualquer IDE.
+- **Instrucoes por ecossistema:** o install gera `CLAUDE.md` (Claude Code), `GEMINI.md` (Antigravity) e `AGENTS.md` (Cursor/Windsurf/VSCode) — antes so `CLAUDE.md`, que o Antigravity nao le.
+- **Extensao:** `cliPath` default corrigido para `.harness/bin/os.mjs` (antes `bin/os.mjs` -> erro no painel).
+
 ## [0.4.2] - 2026-05-30
 ### Fixed
 - **`install <ide>` agora instala o Harness COMPLETO (ADR-0031):** qualquer alvo (antigravity, cursor, windsurf, vscode, claude) garante o `.harness/` (motor + MCP + extensao + memoria) e escreve a config MCP apontando para o `.harness/` local — antes o alvo especifico so escrevia a config p/ npx, sem instalar nada.

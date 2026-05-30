@@ -9,7 +9,7 @@ const path = require("node:path");
 
 function cfg() {
   const c = vscode.workspace.getConfiguration("harness");
-  return { node: c.get("node") || "node", cliPath: c.get("cliPath") || "bin/os.mjs" };
+  return { node: c.get("node") || "node", cliPath: c.get("cliPath") || ".harness/bin/os.mjs" };
 }
 function workspaceRoot() {
   const f = vscode.workspace.workspaceFolders;
