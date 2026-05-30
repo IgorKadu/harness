@@ -24,9 +24,9 @@ entao voce retoma de onde parou. O handoff pode ser copiado para a LLM ou salvo 
 - `harness.node` — executavel do Node (default `node`).
 - `harness.cliPath` — caminho do CLI relativo ao workspace (default `bin/os.mjs`).
 
-## Empacotar / instalar
-```bash
-npm i -g @vscode/vsce
-cd extension && vsce package      # gera harness-lean-ai-os-<versao>.vsix
-```
-No VSCode: Extensions -> "..." -> **Install from VSIX...** -> selecione o `.vsix`.
+## Instalar
+O arquivo `.vsix` ja vem pronto neste diretorio. No VSCode/Cursor/Windsurf/Antigravity:
+1. `Ctrl+Shift+P` -> **Install from VSIX...**
+2. selecione `harness-lean-ai-os-0.3.1.vsix`.
+
+Recompilar (opcional): `npm i -g @vscode/vsce` e `vsce package`.

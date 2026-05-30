@@ -1,46 +1,42 @@
-# Conectar o Harness (MCP + extensao)
+# Conectar o Harness (MCP + extensão)
 
-O Harness expoe **um motor** (`src/engine.mjs`) por **tres bocas**: CLI (`bin/os.mjs`),
-servidor **MCP** (`server/mcp.mjs`) e a **extensao VSCode** (`extension/`). Voce conecta
-pela boca que sua ferramenta entende.
+O Harness é **um motor** (`src/engine.mjs`) com **quatro bocas**: CLI (`bin/os.mjs`), servidor **MCP** (`server/mcp.mjs`), **painel web** (`server/web.mjs`) e a **extensão VSCode** (`extension/`). Você conecta pela que sua ferramenta entende.
 
-## 1. Claude Code
-Ja vem pronto em `.claude/settings.json`:
-```json
-{ "mcpServers": { "harness": { "command": "node", "args": ["${CLAUDE_PROJECT_DIR}/bin/os.mjs", "mcp"] } } }
-```
-Abra o projeto no Claude Code e **reinicie** — servidores MCP so conectam no boot. Teste pedindo "rode o brief do Harness".
+## O jeito fácil: um comando configura tudo
 
-## 2. VSCode (suporte nativo a MCP, 1.102+)
-Use `.vscode/mcp.json`:
-```json
-{ "servers": { "harness": { "type": "stdio", "command": "node", "args": ["bin/os.mjs", "mcp"] } } }
-```
-Abra a paleta -> "MCP: List Servers" para iniciar/parar. Em clientes via extensao (Cline, Continue, Copilot Chat), aponte o MCP para o mesmo comando.
+Dentro da pasta do seu projeto:
 
-## 3. Antigravity / Gemini
-`.gemini/settings.json`:
-```json
-{ "mcpServers": { "harness": { "command": "node", "args": ["${workspaceFolder}/bin/os.mjs", "mcp"] } } }
-```
-
-## 4. Extensao VSCode (interface visual)
-Painel de orquestracao com botoes (perguntas/sugestoes/acoes) em vez de texto no chat:
 ```bash
-npm i -g @vscode/vsce
-cd extension && vsce package      # gera o .vsix
-# VSCode -> Extensions -> "Install from VSIX..."
+npx @igorkadu/harness install all
 ```
 
-## Verificar a conexao
-```bash
-node bin/os.mjs doctor            # integridade
-node bin/os.mjs next "teste" --json   # mesmo payload que o MCP/extensao consomem
+Isso cria os arquivos de configuração do MCP **na sua pasta atual**, para todas as IDEs suportadas. Depois **reinicie a IDE** (servidores MCP só conectam ao abrir). Para uma só, troque `all` por `claude` | `vscode` | `cursor` | `windsurf` | `antigravity`.
+
+> Já instalado localmente (tem `bin/` no projeto)? Use `node bin/os.mjs install all`.
+> O comando dentro das configs é escolhido automaticamente: `node bin/os.mjs mcp` se houver `bin/` local, senão `npx -y @igorkadu/harness mcp`.
+
+## O que cada IDE usa (criado pelo `install`)
+
+| IDE | Arquivo gerado | Como ativar |
+|---|---|---|
+| **Claude Code** | `.claude/settings.json` | reabrir o projeto |
+| **VSCode** (1.102+) | `.vscode/mcp.json` | paleta → *MCP: List Servers* |
+| **Cursor** | `.cursor/mcp.json` | reabrir o projeto |
+| **Windsurf** | `.windsurf/mcp.json` | reabrir o projeto |
+| **Antigravity / Gemini** | `.gemini/settings.json` | reabrir o projeto |
+| **Cline / Continue / Copilot** | (use o mesmo comando MCP) | aponte o MCP deles para `npx -y @igorkadu/harness mcp` |
+
+Exemplo do que é gravado (VSCode):
+```json
+{ "servers": { "harness": { "type": "stdio", "command": "npx", "args": ["-y", "@igorkadu/harness", "mcp"] } } }
 ```
 
-## As tools MCP disponiveis
-`os_read_core, os_brief, os_capabilities, os_orchestrate, os_decompose, os_handoff, os_session,
-os_work, os_route, os_init, os_phase, os_recall, os_remember, os_sync, os_doctor, os_tokens,
-os_gaps, os_scan, os_find` (19 tools).
+## Extensão VSCode (chat-orquestrador) — já vem pronta
 
-> Fluxo recomendado para a LLM: `os_brief` -> `os_orchestrate "<intencao>"` (ou `os_session` p/ conversa guiada) -> `os_handoff` para a entrega definida -> seguir `actions`/`awaiting` -> `os_remember` + `os_sync` ao fechar.
+Não precisa compilar. O arquivo `.vsix` está em `extension/`:
+
+1. Paleta (`Ctrl+Shift+P`) → **Install from VSIX...**
+2. selecione `extension/harness-lean-ai-os-0.3.1.vsix`.
+3. O ícone do Harness aparece na barra lateral.
+
+> Não vê a pasta `extension/`? Rode `npx @igorkadu/harnes

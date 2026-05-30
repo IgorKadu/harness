@@ -3,6 +3,12 @@
 Todas as mudancas relevantes deste projeto. Formato baseado em Keep a Changelog;
 versionamento semantico.
 
+## [0.3.1] - 2026-05-30
+### Fixed
+- **`install`/`setup` gravam na pasta do projeto** (antes escreviam na pasta do pacote via npx — as configs MCP "sumiam"). O comando MCP nas configs e escolhido automaticamente (`node bin/os.mjs mcp` local ou `npx -y @igorkadu/harness mcp`).
+- **Extensao VSCode pronta para instalar**: `.vsix` ja incluido em `extension/harness-lean-ai-os-0.3.1.vsix` (Install from VSIX) — nao precisa rodar `vsce`.
+- **README/CONNECT reescritos** mais claros e intuitivos; comandos `npx` consistentes.
+
 ## [0.3.0] - 2026-05-29
 ### Added
 - **Métricas de economia** (`os_metrics`/`metrics`): tokens poupados por tarefa vs. carregar o projeto inteiro (~80%+ no proprio Harness).

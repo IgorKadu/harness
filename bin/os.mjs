@@ -3,7 +3,7 @@
 // NAO contem logica de negocio: so renderiza src/engine.mjs no terminal.
 
 import * as engine from "../src/engine.mjs";
-import { writeFileSync, mkdirSync, statSync } from "node:fs";
+import { writeFileSync, mkdirSync, statSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const C = {
@@ -253,37 +253,40 @@ function banner() {
   console.log("");
 }
 
-const TARGETS = {
-  claude: { file: ".claude/settings.json", json: { mcpServers: { harness: { command: "node", args: ["${CLAUDE_PROJECT_DIR}/bin/os.mjs", "mcp"] } } } },
-  vscode: { file: ".vscode/mcp.json", json: { servers: { harness: { type: "stdio", command: "node", args: ["bin/os.mjs", "mcp"] } } } },
-  antigravity: { file: ".gemini/settings.json", json: { mcpServers: { harness: { command: "node", args: ["${workspaceFolder}/bin/os.mjs", "mcp"] } } } },
-  cursor: { file: ".cursor/mcp.json", json: { mcpServers: { harness: { command: "node", args: ["bin/os.mjs", "mcp"] } } } },
-  windsurf: { file: ".windsurf/mcp.json", json: { mcpServers: { harness: { command: "node", args: ["bin/os.mjs", "mcp"] } } } },
-};
+// Comando MCP correto para o contexto: bin local (apos scaffold) ou npx.
+function mcpCmd() {
+  const cwd = process.cwd();
+  if (existsSync(join(cwd, "bin", "os.mjs"))) return { command: "node", args: ["bin/os.mjs", "mcp"] };
+  return { command: "npx", args: ["-y", "@igorkadu/harness", "mcp"] };
+}
+function targets() {
+  const c = mcpCmd();
+  return {
+    claude: { file: ".claude/settings.json", json: { mcpServers: { harness: { ...c } } } },
+    vscode: { file: ".vscode/mcp.json", json: { servers: { harness: { type: "stdio", ...c } } } },
+    antigravity: { file: ".gemini/settings.json", json: { mcpServers: { harness: { ...c } } } },
+    cursor: { file: ".cursor/mcp.json", json: { mcpServers: { harness: { ...c } } } },
+    windsurf: { file: ".windsurf/mcp.json", json: { mcpServers: { harness: { ...c } } } },
+  };
+}
 
 function cmdSetup() {
   banner();
-  const here = engine.ROOT;
-  console.log(color("bold", "   Ambiente detectado:"));
-  const checks = [
-    [".claude", "Claude Code"],
-    [".vscode", "VSCode"],
-    [".gemini", "Antigravity/Gemini"],
-    [".cursor", "Cursor"],
-    [".windsurf", "Windsurf"],
-    ["extension", "Extensao (chat-orquestrador)"],
-  ];
+  const here = process.cwd();
+  console.log(color("bold", "   Pasta atual: ") + color("dim", here));
+  console.log(color("bold", "\n   Ambiente detectado (configs ja criadas aqui):"));
+  const checks = [[".claude", "Claude Code"], [".vscode", "VSCode"], [".gemini", "Antigravity/Gemini"], [".cursor", "Cursor"], [".windsurf", "Windsurf"]];
   for (const [dir, label] of checks) {
-    const ok = engine.readIfExists(join(here, dir, ".keep")) !== null || existsDir(join(here, dir));
-    console.log(`   ${ok ? color("green", "ok") : color("dim", "--")} ${label}  ${color("dim", dir)}`);
+    const ok = existsDir(join(here, dir));
+    console.log(`   ${ok ? color("green", "ok") : color("dim", "--")} ${label}  ${color("dim", dir + (ok ? "" : " (rode install)"))}`);
   }
+  const localBin = existsSync(join(here, "bin", "os.mjs"));
   console.log("");
   console.log(color("bold", "   Proximos passos:"));
-  console.log(`   1. ${color("cyan", "node bin/os.mjs install all")}   configura MCP p/ Claude Code, VSCode e Antigravity`);
+  console.log(`   1. ${color("cyan", localBin ? "node bin/os.mjs install all" : "npx @igorkadu/harness install all")}   conecta o MCP nas IDEs`);
   console.log(`   2. ${color("cyan", "reinicie a IDE")}                 servidores MCP so conectam no boot`);
-  console.log(`   3. ${color("cyan", "node bin/os.mjs doctor")}         valida a integridade`);
-  console.log(`   4. ${color("cyan", "node bin/os.mjs init")}           onboarding guiado`);
-  console.log(`   ${color("dim", "Extensao VSCode: cd extension && vsce package -> Install from VSIX. Guia: CONNECT.md")}`);
+  console.log(`   3. ${color("cyan", localBin ? "node bin/os.mjs doctor" : "npx @igorkadu/harness doctor")}        valida a integridade`);
+  console.log(color("dim", "   Extensao VSCode: instale o .vsix de extension/ (Install from VSIX). Guia: CONNECT.md"));
   console.log("");
 }
 
@@ -291,16 +294,20 @@ function existsDir(p) { try { return statSync(p).isDirectory(); } catch { return
 
 function cmdInstall(rest) {
   const target = (rest[0] || "all").toLowerCase();
-  const list = target === "all" ? Object.keys(TARGETS) : [target];
-  if (list.some((t) => !TARGETS[t])) die("alvo invalido. Use: claude | vscode | antigravity | all");
+  const T = targets();
+  const list = target === "all" ? Object.keys(T) : [target];
+  if (list.some((t) => !T[t])) die("alvo invalido. Use: claude | vscode | antigravity | cursor | windsurf | all");
   banner();
+  const cwd = process.cwd();
+  console.log(color("bold", "   Gravando configs MCP em: ") + color("dim", cwd) + "\n");
   for (const t of list) {
-    const { file, json } = TARGETS[t];
-    const abs = join(engine.ROOT, file);
-    mkdirSync(join(engine.ROOT, file.split("/")[0]), { recursive: true });
-    writeFileSync(abs, JSON.stringify(json, null, 2) + "\n", "utf8");
+    const { file, json } = T[t];
+    mkdirSync(join(cwd, file.split("/")[0]), { recursive: true });
+    writeFileSync(join(cwd, file), JSON.stringify(json, null, 2) + "\n", "utf8");
     console.log(`   ${color("green", "ok")} ${t.padEnd(12)} -> ${file}`);
   }
+  const localBin = existsSync(join(cwd, "bin", "os.mjs"));
+  if (!localBin) console.log(color("yellow", "\n   Aviso: nao achei bin/os.mjs aqui. As configs usam 'npx @igorkadu/harness mcp'."));
   console.log(color("dim", "\n   Reinicie a IDE para conectar o MCP. Detalhes em CONNECT.md.\n"));
 }
 
