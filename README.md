@@ -1,210 +1,162 @@
 # Harness — Lean AI OS
 
-**A ferramenta que ajuda a criar outras ferramentas.** Uma camada de inteligência entre você, a LLM e o seu projeto — para que o desenvolvimento não trave conforme a complexidade cresce.
+> **O cérebro que fica entre você e a IA.** Você diz o que quer; o Harness entende, organiza e entrega para a IA já mastigado — com objetivo, escopo, onde mexer e o que **não** fazer. Assim a IA não se perde, você não repete as mesmas explicações, e o projeto não trava conforme cresce.
 
-Harness é a implementação de referência de um *AI Operating System* no modelo **Lean / Retrieval-First**: a mesma tese do que já existe por aí — *"a inteligência está na estrutura, não no modelo"* — mas com o vetor de escala invertido. Em vez de uma enciclopédia que a LLM **carrega** (e que entope o contexto), é uma biblioteca que a LLM **consulta**.
+Pense assim: a **IA** é um dev júnior de potencial enorme, **você** é quem idealiza o projeto (mas nem sempre sabe o "como"), e o **Harness** é quem traduz a sua ideia em uma tarefa bem definida para a IA executar.
+
+```
+Você  ──▶  Harness (organiza, pergunta, estrutura)  ──▶  IA (executa com tudo definido)
+   ▲                                                              │
+   └──────────────────  resposta / entrega  ◀────────────────────┘
+```
+
+- **Zero dependências.** Só precisa de **Node.js 18+**.
+- **Funciona com** Claude Code, VSCode, Cursor, Windsurf, Antigravity — e até no navegador, sem IDE.
+- **Não enche o contexto da IA:** carrega só os arquivos que importam para a tarefa atual (~1k tokens fixos, não o projeto inteiro).
 
 ---
 
-## O problema que ele resolve
+## Começe em 30 segundos
 
-Assistentes de IA degradam conforme o projeto cresce: o contexto enche, a atenção se dilui, e o desenvolvimento "trava" no nível médio/avançado. A causa-raiz é que a maioria dos frameworks combate o limite de contexto **adicionando estrutura que consome o próprio contexto**.
+> Requisito: **Node.js 18+**. Nada mais para instalar.
 
-### A invariante (a regra que rege tudo)
-> **O custo de contexto de uma tarefa é função da tarefa, não do tamanho do projeto.**
-> Um projeto 10× maior não custa 10× mais tokens por tarefa. Não coube no orçamento → **decompõe a tarefa**.
+| O que você quer | Comando (rode dentro da pasta do projeto) |
+|---|---|
+| **Instalar** num projeto novo ou existente | `npx @igorkadu/harness scaffold .` |
+| **Atualizar** o Harness sem perder sua memória | `npx @igorkadu/harness upgrade .` |
+| **Conectar** com sua IDE (Claude Code, VSCode…) | `npx @igorkadu/harness install all` |
+| **Ver o painel** (sem IDE, no navegador) | `npx @igorkadu/harness serve` |
 
-Resultado medido: o CORE sempre-ligado fica em **~1k tokens** (a referência anterior media ~9–11k); cada tarefa recupera só os ≤5 arquivos que importam.
+É só isso para começar. Depois de instalar, **reinicie a sua IDE** (os servidores de IA só conectam ao abrir).
 
----
+> ⚠️ **Uma regra para não errar:** use **ou** `npx @igorkadu/harness <comando>` (quando vem do npm) **ou** `node bin/os.mjs <comando>` (quando você já está dentro de um projeto que tem a pasta `bin/`). **Nunca os dois juntos** — `npx @igorkadu/harness node bin/os.mjs ...` dá erro.
 
-## Instalação (1 comando)
-
-> Requisito único: **Node.js ≥ 18**. Zero dependências de runtime.
-
-**Em um projeto novo ou existente** (após o pacote estar publicado no npm):
-
-```bash
-npx @igorkadu/harness scaffold .
-```
-
-Isso instala, no diretório atual: o motor (`src/` + `bin/` + `server/`), o `.ai/` (CORE, conhecimento, memória fresca), e os stubs de configuração para Claude Code, Antigravity e VSCode. Use `--force` para sobrescrever.
-
-### Atualizar (upgrade) sem perder a memória
-Em um projeto que já usa o Harness, **não rode `scaffold` por cima** (ele recusa, para te proteger). Use:
-```bash
-node bin/os.mjs upgrade .     # atualiza motor/bocas/CORE, PRESERVA .ai/memory + fase, faz backup em .ai/backup-*
-```
-Se não houver memória no destino, o `upgrade`/`scaffold` faz a instalação padrão (zerada).
-
-**Ou via git (enquanto o npm não está publicado):**
+<details>
+<summary>Ainda não publicado no npm? Use via git (clique para abrir)</summary>
 
 ```bash
-git clone https://github.com/IgorKadu/harness   # repo a ser criado
+git clone https://github.com/IgorKadu/harness
 cd harness
-node bin/os.mjs doctor                            # valida a integridade
+node bin/os.mjs setup     # banner + detecta seu ambiente + próximos passos
 ```
+Dentro de um projeto já instalado, todos os comandos viram `node bin/os.mjs <comando>` (sem `npx`).
+</details>
 
-Depois de instalar, **reinicie a IDE** (servidores MCP só conectam no boot do processo) e rode:
+---
+
+## Como funciona (em 1 minuto)
+
+1. **Você conversa** com a IA normalmente, em linguagem natural.
+2. **A IA aciona o Harness** nos bastidores. Você não precisa decorar comando nenhum.
+3. **O Harness organiza:** classifica a tarefa, faz as perguntas certas, aponta onde está o código, o que falta, e monta uma entrega clara.
+4. **A IA executa** com tudo definido — sabendo onde mexer, como e o que evitar.
+
+As **únicas** vezes em que o Harness para para te perguntar algo são duas (as "travas boas"):
+
+1. **Mudar de fase** do projeto (`discovery → execution → stabilization`).
+2. **Aprovar o plano** de uma tarefa grande.
+
+| Fase | A IA… | Foco |
+|---|---|---|
+| `discovery` | pergunta **bastante** | alinhar objetivo e escopo antes de codar |
+| `execution` | pergunta o **essencial** | construir |
+| `stabilization` | quase não pergunta | concluir e estabilizar |
+
+---
+
+## Conectar com a sua ferramenta
+
+Um comando configura tudo automaticamente:
 
 ```bash
-node bin/os.mjs init     # onboarding guiado (detecta projeto novo vs. existente)
-node bin/os.mjs scan     # varre o código e monta o code-map
+npx @igorkadu/harness install all
 ```
 
-### Setup guiado (recomendado)
-O CLI tem uma interface amigável (banner + versão + passos):
-```bash
-node bin/os.mjs setup            # mostra o banner, detecta o ambiente e os próximos passos
-node bin/os.mjs install all      # escreve as configs MCP certas (Claude Code, VSCode, Antigravity)
-```
-`install` aceita também um alvo específico: `claude` | `vscode` | `antigravity` | `cursor` | `windsurf`. Depois, **reinicie a IDE**.
+Ou escolha só a sua: `install claude` · `install vscode` · `install cursor` · `install windsurf` · `install antigravity`. Depois **reinicie a IDE**.
 
-Sem IDE? Use o **painel web** do orquestrador:
-```bash
-node bin/os.mjs serve         # abre http://localhost:4173
-```
+| Ferramenta | Como conecta |
+|---|---|
+| **Claude Code** | configuração automática em `.claude/settings.json` |
+| **VSCode** (1.102+) | `.vscode/mcp.json` — paleta → *MCP: List Servers* |
+| **Cursor / Windsurf** | `.cursor/mcp.json` / `.windsurf/mcp.json` |
+| **Antigravity** | `.gemini/settings.json` |
+| **Cline / Continue / Copilot** | aponte o MCP deles para `node bin/os.mjs mcp` |
+| **Sem IDE** | `npx @igorkadu/harness serve` → abre no navegador |
 
-### Extensão (chat-orquestrador)
-Painel lateral que conversa com você, estrutura a tarefa e entrega o handoff à LLM:
+Passo a passo detalhado de cada uma: **[CONNECT.md](./CONNECT.md)**.
+
+### Extensão para VSCode (chat-orquestrador)
+Um painel lateral que **conversa com você**, organiza a tarefa e entrega o resultado pronto para a IA:
 ```bash
 npm i -g @vscode/vsce
-cd extension && vsce package     # gera o .vsix
-# VSCode → Extensions → "…" → Install from VSIX…
+cd extension && vsce package      # gera o arquivo .vsix
+# No VSCode: Extensions → "⋯" → Install from VSIX…
 ```
-Guia completo de conexão (MCP + extensão) para todas as ferramentas: **[CONNECT.md](./CONNECT.md)**.
 
 ---
 
-## Como você usa no dia a dia (autonomia — ADR-0026)
+## Comandos do dia a dia
 
-**Você não precisa decorar comando nenhum.** O modelo é *autônomo por padrão*: você conversa em linguagem natural com a LLM, e é a **LLM** que aciona os mecanismos do Harness no momento certo (via MCP). Os comandos existem como **atalho opcional**, não como obrigação.
+Você raramente precisa deles (a IA aciona sozinha), mas eles existem como atalho. Dentro de um projeto instalado, use `node bin/os.mjs <comando>`:
 
-As **únicas** pausas deliberadas — as "travas boas" — são duas:
-1. **Avançar de fase** (`discovery → execution → stabilization`): você decide quando o projeto muda de etapa.
-2. **Aprovar o plano** de uma tarefa grande (`complex`): a LLM propõe, você confirma.
-
-Isso garante **início, meio e fim** sem loop infinito — e sem você orquestrar o OS manualmente.
-
-### O ciclo de vida (e como o diálogo muda)
-O Harness calibra **quanto a LLM questiona vs. executa** conforme a fase:
-
-| Fase | Postura da LLM | Foco |
-|---|---|---|
-| `discovery` | questiona **muito** | alinhar objetivo, escopo e direção antes de executar |
-| `execution` | questiona o **pontual** | construir, alinhado ao rumo |
-| `stabilization` | **sugestiva**, baixa fricção | concluir, estabilizar, evitar escopo novo |
-
-Muitos diálogos no começo, pontuais no meio, conclusivos no fim. Melhorias podem ocorrer em qualquer fase.
-
----
-
-## Configuração por ambiente
-
-Os stubs abaixo já vêm prontos no scaffold. Todos apontam para o **mesmo binário** (`bin/os.mjs mcp`), que sobe o servidor MCP.
-
-### Claude Code — `.claude/settings.json`
-MCP nativo + slash commands (`/init`, `/sync`, `/work` em `.claude/commands/`). Reinicie o Claude Code após instalar.
-```json
-{ "mcpServers": { "harness": { "command": "node", "args": ["${CLAUDE_PROJECT_DIR}/bin/os.mjs", "mcp"] } } }
+```bash
+node bin/os.mjs setup                 # banner + detecta ambiente + próximos passos
+node bin/os.mjs next "corrigir login" # organiza a tarefa: classifica, pergunta, decide o próximo passo
+node bin/os.mjs handoff "corrigir login"  # gera a entrega pronta p/ a IA (objetivo, onde, como, o que não fazer)
+node bin/os.mjs metrics "corrigir login"  # quanto de contexto você está economizando
+node bin/os.mjs doctor                # checa se está tudo íntegro
+node bin/os.mjs upgrade .             # atualiza o Harness preservando sua memória
 ```
 
-### Antigravity — `.gemini/settings.json`
-MCP nativo + workflows em `.agents/workflows/`. Reinicie a IDE.
-```json
-{ "mcpServers": { "harness": { "command": "node", "args": ["${workspaceFolder}/bin/os.mjs", "mcp"] } } }
-```
+<details>
+<summary>Lista completa de comandos (clique para abrir)</summary>
 
-### VSCode — MCP nativo + extensão própria
-- **MCP nativo (1.102+):** `.vscode/mcp.json` já aponta para `node bin/os.mjs mcp`. Abra a paleta → *MCP: List Servers*.
-- **Extensão Harness (`extension/`):** um **painel de orquestração** na barra lateral. Você digita a intenção e recebe classificação, perguntas guiadas, decomposição e ações em **botões** — sem texto no chat. Empacote com `cd extension && vsce package` e instale o `.vsix`.
-- **Agentes (Cline/Continue/Copilot):** aponte o MCP deles para `node bin/os.mjs mcp`.
-- Também há **Tasks** (`Run Task → Harness: …`) para `doctor/brief/scan/sync/work`.
-
-> Guia completo de conexão para todas as ferramentas: **[CONNECT.md](./CONNECT.md)**.
-
----
-
-## As 23 ferramentas (tools MCP = espelho do CLI)
-
-A LLM chama estas; você vê os equivalentes no CLI (`node bin/os.mjs <cmd>`).
-
-| Tool / comando | Para quê |
+| Comando | Para quê |
 |---|---|
-| `os_orchestrate` / `next "<intenção>"` | **Orquestrador:** pacote de interação (classifica + perguntas + decompõe + ações + `awaiting`) |
-| `os_handoff` / `handoff "<intenção>"` | **Entrega à LLM:** spec estruturada (objetivo/escopo/não-fazer/onde/como/porquê) |
-| `os_gaps` / `gaps "<intenção>"` | **O que falta:** smells, arquivos sem teste, arquivo ausente |
-| `os_metrics` / `metrics ["<intenção>"]` | Economia de contexto por tarefa vs. projeto inteiro |
-| `os_suggest_routes` / `routes` | Sugere novas rotas a partir do histórico |
-| `os_subtasks` / `subtasks <spawn\|status\|done>` | Subtarefas como sessões-filhas (progresso) |
-| `os_template` / `template <api\|web\|cli\|lib>` | Seed por tipo de projeto |
-| `os_session` / `session <start\|answer\|status\|clear>` | Chat-orquestrador persistente (conduz a conversa e resume) |
-| `os_decompose` / `decompose "<intenção>"` | Quebra tarefa que estoura o orçamento em subtarefas |
-| `os_read_core` / `read-core` | Carrega o CORE (CONSTITUTION + state-of-world) numa chamada |
-| `os_brief` / `brief` | Situação + postura de diálogo (a LLM lê antes de falar com você) |
-| `os_capabilities` / `caps` | Navegação interna: opções disponíveis + ação recomendada |
-| `os_work` / `work "<intenção>"` | Recupera ≤5 arquivos + orçamento + candidatos de código |
-| `os_route` / `route` | Só o roteamento |
-| `os_init` / `init [new\|existing]` | Onboarding guiado (perguntas para conduzir) |
-| `os_phase` / `phase [fase]` | Vê/avança a fase (a trava boa) |
-| `os_scan` / `scan` | Varre o código → `code-map` consultável |
-| `os_find` / `find "<termo>"` | Acha arquivos/símbolos no code-map |
-| `os_recall` / `recall "<termo>"` | Grep nos logs sem carregar inteiro |
-| `os_remember` / `remember <log> "<txt>"` | Registra na memória (append-only) |
-| `os_sync` / `sync` | Reescreve a memória quente + re-escaneia se preciso |
-| `os_doctor` / `doctor` | Integridade do índice/CORE/fase |
-| `os_tokens` / `tokens` | Mede o CORE contra o teto |
+| `next "<tarefa>"` | Organiza a tarefa: classifica + perguntas + decompõe + próximos passos |
+| `session <start\|answer\|status\|resume\|clear>` | Conversa do orquestrador (lembra de onde parou) |
+| `handoff "<tarefa>"` | Entrega estruturada para a IA |
+| `gaps "<tarefa>"` | O que está faltando (testes, arquivos, pontos a melhorar) |
+| `decompose "<tarefa>"` | Quebra tarefa grande em partes menores |
+| `metrics ["<tarefa>"]` | Economia de contexto por tarefa |
+| `routes` | Sugere novas rotas a partir do seu histórico |
+| `subtasks <spawn\|status\|done>` | Subtarefas com progresso |
+| `template <api\|web\|cli\|lib>` | Ponto de partida por tipo de projeto |
+| `brief` / `caps` | Situação atual + opções disponíveis |
+| `phase [discovery\|execution\|stabilization]` | Vê ou avança a fase |
+| `init` / `scan` / `find "<termo>"` | Onboarding · mapeia o código · busca no mapa |
+| `recall "<termo>"` / `remember <log> "<txt>"` | Consulta e registra na memória |
+| `sync` / `tokens` / `doctor` | Manutenção e integridade |
+| `install [alvo]` / `serve [porta]` / `upgrade [pasta]` | Conectar IDE · painel web · atualizar |
+
+A IA acessa exatamente os mesmos recursos via **23 ferramentas MCP** (`os_orchestrate`, `os_handoff`, `os_metrics`, …) — o CLI é o espelho delas.
+</details>
 
 ---
 
-## Arquitetura
+## Para curiosos: como é por dentro
 
-**Um cérebro, várias bocas (ADR-0023).** Toda a lógica vive num motor único; as interfaces são adaptadores finos que o importam e **nunca duplicam lógica**.
+**Um cérebro, várias bocas.** Toda a lógica vive num motor único; CLI, servidor MCP, extensão e painel web são só "bocas" finas que chamam esse motor — sem duplicar nada.
 
 ```
 Harness/
-├── src/engine.mjs          # MOTOR — única fonte de lógica (zero-dep)
-├── bin/os.mjs              # boca CLI (+ comando 'mcp' e 'scaffold')
-├── server/mcp.mjs          # boca MCP (stdio, 14 tools)
-├── .claude/ .gemini/ .vscode/ .agents/   # configs por ambiente
+├── src/engine.mjs       # o cérebro (zero dependências)
+├── bin/os.mjs           # boca: linha de comando (CLI)
+├── server/mcp.mjs       # boca: servidor MCP (usado pelas IDEs)
+├── server/web.mjs       # boca: painel web
+├── extension/           # boca: extensão do VSCode
 └── .ai/
-    ├── CONSTITUTION.md          # CORE sempre-ligado (~600 tk)
-    ├── retrieval-index.json     # rotas intenção→≤5 arquivos (+ schema)
-    ├── memory/
-    │   ├── state-of-world.md    # quente, reescrito (não incha)
-    │   ├── decisions-index.md   # 1 linha por ADR
-    │   └── logs/                # append-only, só consultado por grep
-    ├── knowledge/               # skills/tools/regras (recuperados sob demanda)
-    ├── bootstrap/questions.json # banco de perguntas do onboarding
-    └── specs/ADR/               # decisões arquiteturais
+    ├── CONSTITUTION.md      # regras sempre-ligadas (~1k tokens)
+    ├── retrieval-index.json # mapa "intenção → até 5 arquivos"
+    ├── memory/              # estado atual + histórico (sua memória)
+    └── specs/ADR/           # decisões de arquitetura
 ```
 
-**Camadas de contexto:** CORE (sempre, ~1k tk) → recuperado por tarefa (≤5 arquivos via índice) → código sob demanda (grep no momento, guiado pelos candidatos do `scan`). Nada é pré-carregado "por garantia".
+**A ideia central:** o custo de contexto depende da *tarefa*, não do *tamanho do projeto*. Um projeto 10× maior não custa 10× mais tokens por tarefa — se não couber, o Harness **divide a tarefa**. Por isso ele continua leve mesmo quando o projeto cresce.
 
-### Decisões (ADRs)
-- **0022** — Lean / Retrieval-First (fundamento)
-- **0023** — Um cérebro, várias bocas (motor + adaptadores)
-- **0024** — Comunicação adaptativa + navegação interna
-- **0025** — Varredura zero-dep + code-map consultável
-- **0026** — Operação autônoma (comandos como atalho, não trava)
+Decisões de arquitetura (ADRs 0022–0029) ficam em `.ai/specs/ADR/`. Veja também o **[ROADMAP.md](./ROADMAP.md)** e o **[CHANGELOG.md](./CHANGELOG.md)**.
 
 ---
-
-## O que o torna diferente
-
-Harness não aposta numa técnica só — combina o que funciona, enxuto: **retrieval-first** (contra o limite de contexto), **memória compilada** (estado reescrito + histórico append-only consultável), **ciclo de vida com postura adaptativa** (início/meio/fim sem loop), **navegação interna** (o OS informa suas opções à LLM) e **varredura zero-dep** (acompanha o crescimento do código). Tudo determinístico, independente da LLM e do nível do usuário.
-
----
-
-## Desenvolvimento (trabalhar NO Harness)
-
-```bash
-node bin/os.mjs doctor      # integridade
-node bin/os.mjs scan        # re-mapeia o código
-node bin/os.mjs sync        # checkpoint da memória quente
-```
-
-Antes de abrir mudanças: leia `.ai/CONSTITUTION.md` e os ADRs em `.ai/specs/ADR/`.
 
 ## Licença
-MIT — use, faça fork, publique.
+MIT — use, faça fork, publique. Versão atual: **v0.3.0**.

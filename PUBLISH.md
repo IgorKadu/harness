@@ -36,7 +36,7 @@ Verifique: https://www.npmjs.com/package/@igorkadu/harness
 Depois de publicado, a instalacao em qualquer projeto e:
 ```bash
 npx @igorkadu/harness scaffold .         # projeto novo (memoria zerada)
-node bin/os.mjs upgrade .                 # projeto que JA usa Harness: atualiza e PRESERVA a memoria (backup em .ai/backup-*)
+npx @igorkadu/harness upgrade .          # projeto que JA usa Harness: atualiza e PRESERVA a memoria (backup em .ai/backup-*)
 ```
 
 ## 3. Extensao VSCode (opcional, canal separado)
