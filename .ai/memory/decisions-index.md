@@ -18,3 +18,13 @@
 | ADR-0032 | Config MCP com caminho absoluto + instrucoes por ecossistema (CLAUDE/GEMINI/AGENTS) | aceito |
 | ADR-0033 | Canal smash/handoff/report + protecao do .harness + scan do projeto + slot LLM | aceito |
 | ADR-0034 | Harness como turbina (automacoes pipeline/analyze/inspect); extensao removida | aceito |
+| ADR-0035 | Engine modular por dominio + fachada + contrato LLM formal | aceito |
+| ADR-0036 | Politica de idioma (EN sistema / PT dialogo) + loop de validacao automatizado | aceito |
+| ADR-0037 | Save points: checkpoints read-first em 3 camadas (overview/progress/technical) | aceito |
+| ADR-0038 | Instalador interativo + instalacao limpa + superficie minima (reset/update/reforce) | aceito |
+| ADR-0039 | Estabilizacao: suite de testes (node:test) + escrita atomica + state root unico + doctor mais fundo | aceito |
+| ADR-0040 | Capsula de contexto (os_start) + ponteiro de foco (os_focus) + staleness dos saves | aceito |
+| ADR-0041 | Forma da tarefa (escalate vs single-pass) + verificacao adversarial (inspirado em Dynamic Workflows, sem o runtime) | aceito |
+| ADR-0042 | Superficie MCP curada (~20 tools, -38% overhead) + fix conflito de instrucoes + fix override da capsula | aceito |
+| ADR-0043 | Curadoria: dead code, docs desatualizados, refs a tools demovidas, bug do detectStack | aceito |
+| ADR-0044 | Auditoria estruturada completa (G1-G7): hook LLM morto removido, knowledge orfao religado, pacote enxuto, +5 testes | aceito |

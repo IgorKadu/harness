@@ -8,12 +8,13 @@ O usuário conversa normalmente; **você** aciona o Harness sozinho. Não exija 
 - Todo o resto flui sem pausa.
 
 ## Protocolo (toda mensagem)
-1. Leia **só** `.ai/CONSTITUTION.md` + `.ai/memory/state-of-world.md` (o CORE — ~1k tokens) — ou chame `os_brief`.
+0. **Cápsula primeiro (ADR-0040).** Chame `os_start` — um só pacote barato com foco, saves (e o que está stale), postura e a `nextAction`. **Aja na nextAction** e não re-rode fluxos pesados para o que a cápsula já respondeu. Saves frescos → retome deles; ausentes → rode os fluxos e grave (`os_save_write`); estrutural ao concluir → `os_save_checkpoint` em todas as camadas. Mantenha o fio com `os_focus set` quando o passo mudar.
+1. Leia **só** `.ai/CONSTITUTION.md` + `.ai/memory/state-of-world.md` (o CORE — ~1k tokens) — ou chame `os_brief` (já traz o status dos Saves).
 2. Para uma tarefa, prefira `os_orchestrate "<intenção>"` (ADR-0027): uma chamada devolve classificação + ≤5 arquivos + perguntas guiadas + decomposição + `actions`/`awaiting`. Siga o `awaiting` (só pausa em `user_answers`/`user_confirm_plan`). Use `os_work` quando quiser só o working-set, `os_session` para conduzir a conversa com o usuário e `os_handoff` para entregar a tarefa já definida (objetivo/escopo/não-fazer/onde/como). **Não leia nada por garantia.**
 3. **Siga a postura da fase** que veio no brief/work (discovery questiona muito; execution executa; stabilization conclui).
 4. Contexto de código vem de grep/símbolo no momento (use os candidatos do `os_work`/`os_find`).
 5. Classifique (`trivial | simple | complex`); em `complex` proponha plano e espere OK.
-6. Ao fechar: `os_remember` + `os_sync` (re-escaneia sozinho se o código mudou). Feche `simple/complex` com a linha `audit:`.
+6. Ao fechar: `os_remember` + `os_sync` + `os_save_checkpoint` (atualize o Save adequado; estrutural = todos). Feche `simple/complex` com a linha `audit:`.
 
 ## Invariante (não negociável)
 Custo de contexto = função da tarefa, não do projeto. Não cabe no orçamento → **decompor a tarefa**.

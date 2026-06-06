@@ -3,6 +3,28 @@
 Todas as mudancas relevantes deste projeto. Formato baseado em Keep a Changelog;
 versionamento semantico.
 
+## [0.9.0] - 2026-06-05
+### Added
+- **Forma da tarefa + verificacao adversarial (ADR-0041)** — inspirado no Dynamic Workflows da Anthropic, sem o runtime caro de subagentes:
+  - `os_assess` — classifica a tarefa em `single-pass` ou `escalate` (guarda anti-explosao: tarefa grande/paralela manda DELEGAR ao Dynamic Workflows nativo ou DECOMPOR em subsessoes, em vez de moer um contexto so); inclui postura de custo (caminho suficiente mais barato).
+  - `os_verify` — checklist de refutacao adversarial p/ saidas de alto risco (refute o proprio resultado ate convergir; nunca declarar verde sem `os_validate`).
+  - A capsula `os_start <intencao>` passa a carregar `task.shape` e redireciona a `nextAction` para escalar quando preciso. Skill `workflow-shape`. MCP com **39 tools**, catalogo dividido (`tools.mjs` + `tools-ext.mjs`).
+
+## [0.8.0] - 2026-06-05
+### Added
+- **Capsula de contexto (ADR-0040):** `os_start` — UMA chamada barata (~500 tk) em ordem de prioridade: foco + saves (e o que esta STALE) + postura + `nextAction`. Passo 0 de toda mensagem; substitui re-rodar brief+saves+pipeline.
+- **Ponteiro de foco:** `os_focus` (objetivo/passo/proxima acao) em `.ai/runtime/focus.json` — mantem o fio dentro e entre sessoes.
+- **Staleness dos saves:** marca uma camada quando o code-map e mais novo que o save. Skill `continuity`.
+
+## [0.7.0] - 2026-06-04
+### Added
+- **Estabilizacao (ADR-0039):** suite de **testes** com `node:test` (sandbox via `HARNESS_AI_DIR`), `npm test` no CI (Node 18/20/22); **escrita atomica** (`writeFileAtomic`) em todos os writers duraveis; **state root unico** (memoria unificada no `AI`); `doctor` checa integridade de saves/memoria.
+- **Save points (ADR-0037):** `os_saves`/`os_save_write`/`os_save_checkpoint` — 3 camadas read-first (overview/progress/technical) com estagio `initial|pending|done`.
+- **Instalador interativo + reset/update/reforce (ADR-0038):** menu numerado por ambiente; instalacao limpa; superficie minima ao usuario (internos ocultos).
+- **Loop de validacao (ADR-0036):** `os_validate`/`os_checks` rodam os checks do projeto e registram falhas no errors-log ate passar. Politica de idioma (sistema EN / dialogo PT).
+### Changed
+- **Engine modular por dominio + fachada (ADR-0035):** `src/core` + `src/modules` + `src/llm`, `engine.mjs` vira barrel; CLI modularizado; contrato LLM formal. Smells=0.
+
 ## [0.6.0] - 2026-05-30
 ### Added
 - **Harness como TURBINA (ADR-0034):** automacoes que fazem o trabalho pesado no repo e entregam tudo p/ a LLM.

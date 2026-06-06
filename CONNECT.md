@@ -46,10 +46,15 @@ node .harness/bin/os.mjs doctor
 node .harness/bin/os.mjs pipeline      # analisa o projeto e gera o handoff
 ```
 
-## As 29 tools MCP
-Turbina: `os_pipeline, os_analyze, os_inspect, os_automations`.
-Orquestração/entrega: `os_orchestrate, os_decompose, os_handoff, os_smash, os_report, os_session, os_gaps`.
-Contexto/memória: `os_brief, os_capabilities, os_work, os_route, os_scan, os_find, os_recall, os_remember, os_sync, os_metrics, os_suggest_routes, os_subtasks, os_template`.
-Base/manutenção: `os_read_core, os_init, os_phase, os_doctor, os_tokens`.
+## As tools MCP (núcleo curado)
+A IA enxerga um **núcleo de ~20 tools** (menos overhead de contexto; ADR-0042). As demais continuam no motor/CLI, só não são anunciadas.
+
+Entrada/contexto: `os_start` (passo 0: foco + saves + postura + próxima ação).
+Tarefa/entrega: `os_orchestrate, os_handoff, os_smash, os_report, os_assess, os_validate`.
+Save points: `os_saves, os_save_write, os_save_checkpoint, os_focus`.
+Código/memória: `os_scan, os_find, os_recall, os_remember, os_sync`.
+Fluxo/manutenção: `os_pipeline, os_phase, os_subtasks, os_doctor`.
+
+> O resto (`os_brief, os_analyze, os_inspect, os_metrics, os_template, …`) segue chamável via `tools/call` e via CLI.
 
 > **Proteção:** o agente nunca edita/indexa `.harness/` (regra nas instruções + arquivos de ignore). Só o projeto é alterado.

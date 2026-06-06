@@ -1,6 +1,8 @@
 .ai/runtime/
-.ai/memory/logs/
+.ai/memory/
+.ai/saves/
 .ai/project.json
+.ai/specs/ADR/ADR-*.md
 .git/
 node_modules/
 *.log

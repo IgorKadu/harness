@@ -35,7 +35,7 @@ function instructions(proj) {
   return `# Instrucoes do Agente — ${proj} (powered by Harness · Lean AI OS)
 
 > O Harness (orquestrador) vive em \`.harness/\`. Voce (IA) o aciona pelas **tools MCP**
-> (\`os_brief\`, \`os_orchestrate\`, \`os_handoff\`, \`os_smash\`, \`os_report\`, …).
+> (\`os_start\`, \`os_orchestrate\`, \`os_handoff\`, \`os_smash\`, \`os_report\`, …).
 
 ## PROTECAO — LEIA PRIMEIRO (nao negociavel)
 - **NUNCA crie, edite, mova ou apague qualquer arquivo dentro de \`.harness/\`.** Ele e o sistema
@@ -49,14 +49,22 @@ Quando o usuario disser **smash** (ou "siga o handoff"):
 2. **execute** seguindo objetivo/escopo/onde/como/o-que-nao-fazer do handoff;
 3. ao terminar, chame \`os_report\` com um resumo do que voce fez — o Harness le isso na proxima vez.
 
+## SAVE POINTS (checkpoints) — como funcionam
+O Harness mantem 3 \`Saves\`: L1 overview, L2 progress, L3 technical. O \`os_start\` (passo 0 abaixo)
+JA traz o status deles — nao chame \`os_saves\` separadamente no inicio.
+- **Existem e frescos:** retome a partir deles; so rode fluxos pesados para o que nao respondem.
+- **Nao existem:** rode os fluxos (\`os_pipeline\`/\`os_scan\`) e DEPOIS grave com \`os_save_write\`.
+- **Ao concluir:** \`os_save_checkpoint\` no Save adequado; mudanca ESTRUTURAL = todas as camadas (layers='all').
+
 ## Fluxo padrao (projeto novo ou existente)
-- Comece pela TURBINA: \`os_pipeline\` — o Harness analisa o repo (estrutura, stack, docs, testes, smells) e ja escreve o handoff. Use \`os_analyze\`/\`os_inspect\` para aprofundar.
+- Comece pela TURBINA: \`os_pipeline\` — o Harness analisa o repo (estrutura, stack, docs, testes, smells) e ja escreve o handoff. Use \`os_scan\`/\`os_find\` para aprofundar no codigo.
 
 ## Protocolo (toda mensagem)
-1. \`os_brief\` — fase, postura, handoff pendente e ultimo relatorio.
-2. \`os_orchestrate "<intencao>"\` — classifica + perguntas + decomposicao + acoes + \`awaiting\`.
-3. \`os_handoff "<intencao>"\` — entrega definida; \`os_smash\` para seguir o handoff atual.
-4. Feche com \`os_report\` (o que foi feito) + \`os_remember\` + \`os_sync\`.
+0. \`os_start\` — PRIMEIRO E SEMPRE: a capsula de contexto. Um so pacote barato com foco (o fio), saves (e o que esta STALE), postura da fase e a \`nextAction\`. AJA na nextAction; nao re-rode fluxos pesados para o que a capsula ja respondeu. Passe uma intencao para vir tambem o working-set (<=5 arquivos).
+1. \`os_orchestrate "<intencao>"\` — para uma tarefa: classifica + perguntas + decomposicao + acoes + \`awaiting\`.
+2. \`os_handoff "<intencao>"\` — entrega definida; \`os_smash\` para seguir o handoff atual.
+3. Mantenha o fio: \`os_focus set\` sempre que o passo atual mudar (objetivo/passo/proxima acao).
+4. Feche com \`os_report\` + \`os_remember\` + \`os_sync\` + \`os_save_checkpoint\` (atualize o Save adequado; estrutural = todos).
 
 ## Travas boas (peça confirmacao ao usuario)
 - Avancar de fase e aprovar plano de tarefa \`complex\`. Só isso.
@@ -103,12 +111,13 @@ function vendor(dst, { force = false } = {}) {
   }
 
   const copy = (rel, toRel) => { const s = join(SRC, rel); if (existsSync(s)) cpSync(s, join(H, toRel || rel), { recursive: true }); };
-  copy("src"); copy("bin/os.mjs"); copy("bin/scaffold.mjs"); copy("server");
+  copy("src"); copy("bin"); copy("server");
   copy(".ai/CONSTITUTION.md"); copy(".ai/retrieval-index.json"); copy(".ai/retrieval-index.schema.json");
   copy(".ai/knowledge"); copy(".ai/bootstrap");
   mkdirSync(join(aiDst, "specs", "ADR"), { recursive: true });
   copy(".ai/specs/ADR/_TEMPLATE.md");
   copy("CONNECT.md");
+  writeFileSync(join(H, "VERSION"), pkgVersion() + "\n", "utf8");
   writeFileSync(join(H, ".gitignore"), ".ai/runtime/\n.ai/backup-*/\n.ai/handoff.md\n.ai/report.md\n.ai/session.json\n.ai/subsessions.json\nnode_modules/\n*.log\n", "utf8");
 
   mkdirSync(join(aiDst, "memory", "logs"), { recursive: true });
@@ -138,6 +147,23 @@ function vendor(dst, { force = false } = {}) {
   return { mode: isUpgrade ? "upgrade" : "fresh", backup, proj, preserve };
 }
 
+
+const USER_COMMANDS = {
+  reset: "# /reset — limpar o Harness deste projeto\n\nZera o Harness (memorias, Saves, runtime) deixando-o como recem-instalado, SEM tocar no motor, knowledge nem nas configs. Use entre projetos para nao misturar contextos.\n\n1. Confirme com o usuario (acao destrutiva).\n2. Rode: `node .harness/bin/os.mjs reset --yes`\n3. Relate o que foi limpo.\n",
+  update: "# /update — atualizar o Harness\n\nBusca a versao mais nova do Harness e atualiza o motor/knowledge/instrucoes PRESERVANDO memorias e Saves.\n\n1. Na raiz do projeto rode: `npx @igorkadu/harness@latest update`\n2. Reinicie a IDE.\n3. Confira com `node .harness/bin/os.mjs doctor`.\n",
+  reforce: "# /reforce — recompilar memoria/Saves/docs\n\nOrienta voce (LLM) a refinar e condensar memoria, Saves e documentacao ao estado ATUAL do projeto, sem perder o que e critico.\n\n1. Chame a tool `os_reforce` (ou rode `node .harness/bin/os.mjs reforce --json`).\n2. Execute a diretiva retornada (scan -> ler Saves -> reescrever -> os_sync -> os_save_checkpoint all).\n",
+};
+function writeSlashCommands(dst, preserve) {
+  const dirs = [join(dst, ".claude", "commands"), join(dst, ".agents", "commands")];
+  for (const dir of dirs) {
+    mkdirSync(dir, { recursive: true });
+    for (const [name, body] of Object.entries(USER_COMMANDS)) {
+      const p = join(dir, name + ".md");
+      if (!preserve || !existsSync(p)) writeFileSync(p, body, "utf8");
+    }
+  }
+}
+
 export function scaffold(targetDir, { force = false } = {}) {
   if (!targetDir) throw new Error("uso: scaffold <dir-alvo> [--force]");
   const dst = resolve(targetDir);
@@ -145,6 +171,7 @@ export function scaffold(targetDir, { force = false } = {}) {
   const v = vendor(dst, { force });
   CONFIG_TARGETS.forEach((t) => writeConfig(dst, t));
   writeInstructions(dst, v.proj, CONFIG_TARGETS, v.preserve);
+  writeSlashCommands(dst, v.preserve);
   const next = v.mode === "upgrade"
     ? ["memoria preservada (backup em .harness/.ai/backup-*)", "reinicie a IDE", "node .harness/bin/os.mjs doctor"]
     : ["reinicie a IDE para conectar o MCP", "node .harness/bin/os.mjs doctor", "node .harness/bin/os.mjs pipeline  (fluxo padrao: analisa o projeto)"];
@@ -152,6 +179,20 @@ export function scaffold(targetDir, { force = false } = {}) {
 }
 
 export function upgrade(targetDir) { return scaffold(targetDir, { force: true }); }
+
+export function update(targetDir) {
+  const dst = resolve(targetDir || ".");
+  const verFile = join(dst, ".harness", "VERSION");
+  const from = (existsSync(verFile) ? readFileSync(verFile, "utf8").trim() : null);
+  const to = pkgVersion();
+  if (!existsSync(join(dst, ".harness", "bin", "os.mjs"))) {
+    // not installed yet -> behave like a fresh install
+    const r = scaffold(dst, { force: false });
+    return { mode: "fresh", from: null, to, target: r.target, changed: true, next: r.next };
+  }
+  const r = scaffold(dst, { force: true }); // re-vendor; memory+saves preserved (vendor never touches saves; writeIf preserves memory)
+  return { mode: "update", from, to, changed: from !== to, target: r.target, backup: r.backup, next: ["memoria e Saves preservados", "reinicie a IDE", "node .harness/bin/os.mjs doctor"] };
+}
 
 export function install(targetDir, targets) {
   const dst = resolve(targetDir || ".");
@@ -162,6 +203,7 @@ export function install(targetDir, targets) {
   else { preserve = true; writeIgnores(dst, false); }
   const written = list.map((t) => ({ target: t, file: writeConfig(dst, t) }));
   writeInstructions(dst, proj, list, preserve);
+  writeSlashCommands(dst, preserve);
   return { target: dst, harnessCreated, mode, backup, written };
 }
 

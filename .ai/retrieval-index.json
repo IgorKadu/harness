@@ -1,7 +1,7 @@
 {
   "$schema": "./retrieval-index.schema.json",
   "version": "1.0.0",
-  "updated": "2026-05-26",
+  "updated": "2026-06-05",
   "description": "Mapa intenção/keyword → ≤5 arquivos. Roteamento determinístico, consumido por bin/os.mjs. Cada rota respeita o teto de 5 paths (invariante de contexto, ADR-0022).",
   "budget": {
     "core_token_cap": 600,
@@ -280,6 +280,135 @@
       ],
       "load": [
         ".ai/bootstrap/questions.json"
+      ]
+    },
+    {
+      "id": "validacao",
+      "triggers": [
+        "validacao",
+        "validation",
+        "validate",
+        "run tests",
+        "rodar testes",
+        "ci verde",
+        "lint",
+        "typecheck",
+        "green",
+        "falhando",
+        "failing"
+      ],
+      "load": [
+        ".ai/knowledge/skills/validation-loop.md",
+        ".ai/memory/logs/errors-log.md"
+      ]
+    },
+    {
+      "id": "idioma",
+      "triggers": [
+        "idioma",
+        "language",
+        "traducao",
+        "translate",
+        "lingua",
+        "locale"
+      ],
+      "load": [
+        ".ai/knowledge/rules/language.md"
+      ]
+    },
+    {
+      "id": "saves",
+      "triggers": [
+        "save",
+        "saves",
+        "checkpoint",
+        "ponto de save",
+        "retomar",
+        "resume",
+        "savepoint",
+        "estado do projeto"
+      ],
+      "load": [
+        ".ai/knowledge/skills/save-points.md"
+      ]
+    },
+    {
+      "id": "continuity",
+      "triggers": [
+        "continuidade",
+        "continuity",
+        "retomar",
+        "resume",
+        "capsula",
+        "capsule",
+        "foco",
+        "focus",
+        "contexto",
+        "janela",
+        "perdido"
+      ],
+      "load": [
+        ".ai/knowledge/skills/continuity.md",
+        ".ai/knowledge/skills/save-points.md"
+      ]
+    },
+    {
+      "id": "workflow-shape",
+      "triggers": [
+        "escalar",
+        "escalate",
+        "paralelo",
+        "parallel",
+        "subagente",
+        "subagent",
+        "dynamic workflow",
+        "workflow",
+        "verificar",
+        "verify",
+        "adversarial",
+        "refutar",
+        "auditoria",
+        "migracao",
+        "em massa"
+      ],
+      "load": [
+        ".ai/knowledge/skills/workflow-shape.md"
+      ]
+    },
+    {
+      "id": "regras",
+      "triggers": [
+        "regra",
+        "regras",
+        "proibido",
+        "proibicao",
+        "nao fazer",
+        "nao faca",
+        "dont",
+        "anti-pattern",
+        "antipadrao",
+        "red flag"
+      ],
+      "load": [
+        ".ai/knowledge/rules/dont.md"
+      ]
+    },
+    {
+      "id": "ciclo",
+      "triggers": [
+        "ciclo de vida",
+        "lifecycle",
+        "desenvolver",
+        "escalar",
+        "estabilizar",
+        "develop",
+        "scale",
+        "stabilize",
+        "etapa do projeto",
+        "fase do projeto"
+      ],
+      "load": [
+        ".ai/knowledge/rules/lifecycle.md"
       ]
     }
   ],

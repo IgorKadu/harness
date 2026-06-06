@@ -112,12 +112,11 @@ Interação direta **sem a LLM**: pelo CLI acima ou pelo painel web `node .harne
 Você raramente precisa deles (a IA aciona sozinha), mas existem como atalho. Dentro de um projeto instalado, use `node .harness/bin/os.mjs <comando>`:
 
 ```bash
-node .harness/bin/os.mjs setup                 # banner + detecta ambiente + próximos passos
-node .harness/bin/os.mjs next "corrigir login" # organiza a tarefa: classifica, pergunta, decide o próximo passo
-node .harness/bin/os.mjs handoff "corrigir login"  # gera a entrega pronta p/ a IA (objetivo, onde, como, o que não fazer)
-node .harness/bin/os.mjs metrics "corrigir login"  # quanto de contexto você está economizando
-node .harness/bin/os.mjs doctor                # checa se está tudo íntegro
-node .harness/bin/os.mjs upgrade .             # atualiza o Harness preservando sua memória
+node .harness/bin/os.mjs setup     # detecta o ambiente + próximos passos
+node .harness/bin/os.mjs reset     # zera o Harness deste projeto (memória/saves) p/ início limpo
+node .harness/bin/os.mjs update    # atualiza o Harness preservando memória e saves
+node .harness/bin/os.mjs reforce   # pede à IA p/ recompilar memória/saves/docs ao estado atual
+node .harness/bin/os.mjs doctor    # checa se está tudo íntegro
 ```
 
 <details>
@@ -141,7 +140,7 @@ node .harness/bin/os.mjs upgrade .             # atualiza o Harness preservando 
 | `sync` / `tokens` / `doctor` | Manutenção e integridade |
 | `install [alvo]` / `serve [porta]` / `upgrade [pasta]` | Conectar IDE · painel web · atualizar |
 
-A IA acessa exatamente os mesmos recursos via **25 ferramentas MCP** (`os_orchestrate`, `os_handoff`, `os_metrics`, …) — o CLI é o espelho delas.
+A IA aciona um **núcleo curado de ~20 ferramentas MCP** (`os_start`, `os_orchestrate`, `os_handoff`, `os_validate`, `os_assess`, …) — menos overhead de contexto (ADR-0042). O motor tem mais funções; o CLI é o espelho de todas.
 </details>
 
 ---
@@ -152,8 +151,11 @@ A IA acessa exatamente os mesmos recursos via **25 ferramentas MCP** (`os_orches
 
 ```
 Harness/
-├── src/engine.mjs       # o cérebro (zero dependências)
-├── bin/os.mjs           # boca: linha de comando (CLI)
+├── src/engine.mjs       # o cérebro: FACHADA que reexporta os módulos (zero dependências)
+│   ├── core/            # base: paths, util, escrita atômica
+│   ├── modules/         # domínios: routing, saves, validate, bootstrap, assurance, …
+│   └── llm/             # o contrato Harness <-> LLM
+├── bin/os.mjs           # boca: linha de comando (CLI, dispatcher fino)
 ├── server/mcp.mjs       # boca: servidor MCP (usado pelas IDEs)
 ├── server/web.mjs       # boca: painel web
 └── .ai/

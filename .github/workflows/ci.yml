@@ -14,12 +14,12 @@ jobs:
         with: { node-version: '${{ matrix.node }}' }
       - name: Syntax check
         run: |
-          node -c src/engine.mjs
-          node -c server/mcp.mjs
-          node -c server/web.mjs
-          node -c bin/os.mjs
-          node -c bin/scaffold.mjs
-          node -c extension/extension.js
+          for f in src/engine.mjs src/core/*.mjs src/modules/*.mjs src/llm/*.mjs \
+                   server/*.mjs bin/os.mjs bin/scaffold.mjs bin/installer.mjs bin/commands/*.mjs bin/lib/*.mjs; do
+            node -c "$f"
+          done
+      - name: Unit tests (node:test)
+        run: node --test test/*.test.mjs
       - name: Doctor
         run: node bin/os.mjs doctor
       - name: Orchestrate smoke test
