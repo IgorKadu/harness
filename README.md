@@ -16,15 +16,15 @@ Você  ──▶  Harness (organiza, pergunta, estrutura)  ──▶  IA (execut
 
 ---
 
-## Começe em 30 segundos
+## Comece em 30 segundos
 
 > Requisito: **Node.js 18+**. Nada mais para instalar.
 
 | O que você quer | Comando (rode dentro da pasta do projeto) |
 |---|---|
-| **Instalar** num projeto novo ou existente | `npx @igorkadu/harness scaffold .` |
-| **Atualizar** o Harness sem perder sua memória | `npx @igorkadu/harness upgrade .` |
-| **Conectar** com sua IDE (Claude Code, VSCode…) | `npx @igorkadu/harness install all` |
+| **Instalar** num projeto novo ou existente | `npx @igorkadu/harness install` (menu interativo) |
+| **Atualizar** o Harness sem perder sua memória | `node .harness/bin/os.mjs update` |
+| **Conectar** com todas as IDEs de uma vez | `npx @igorkadu/harness install all` |
 | **Ver o painel** (sem IDE, no navegador) | `npx @igorkadu/harness serve` |
 
 É só isso para começar. Depois de instalar, **reinicie a sua IDE** (os servidores de IA só conectam ao abrir).
@@ -32,7 +32,7 @@ Você  ──▶  Harness (organiza, pergunta, estrutura)  ──▶  IA (execut
 > ⚠️ **Uma regra para não errar:** use **ou** `npx @igorkadu/harness <comando>` (quando vem do npm) **ou** `node .harness/bin/os.mjs <comando>` (quando o Harness já está instalado no projeto, em `.harness/`). **Nunca os dois juntos** — `npx @igorkadu/harness node .harness/bin/os.mjs ...` dá erro.
 
 <details>
-<summary>Ainda não publicado no npm? Use via git (clique para abrir)</summary>
+<summary>Prefere usar via git em vez do npm? (clique para abrir)</summary>
 
 ```bash
 git clone https://github.com/IgorKadu/harness
@@ -167,9 +167,9 @@ Harness/
 
 **A ideia central:** o custo de contexto depende da *tarefa*, não do *tamanho do projeto*. Um projeto 10× maior não custa 10× mais tokens por tarefa — se não couber, o Harness **divide a tarefa**. Por isso ele continua leve mesmo quando o projeto cresce.
 
-Decisões de arquitetura (ADRs 0022–0029) ficam em `.ai/specs/ADR/`. Veja também o **[ROADMAP.md](./ROADMAP.md)** e o **[CHANGELOG.md](./CHANGELOG.md)**.
+Decisões de arquitetura (ADRs 0022–0044) ficam em `.ai/specs/ADR/`. Veja também o **[ROADMAP.md](./ROADMAP.md)** e o **[CHANGELOG.md](./CHANGELOG.md)**.
 
 ---
 
 ## Licença
-MIT — use, faça fork, publique. Versão atual: **v0.6.0**.
+MIT — use, faça fork, publique. Versão atual: **v0.9.3**.

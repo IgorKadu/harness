@@ -1,6 +1,6 @@
 {
   "name": "@igorkadu/harness",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "type": "module",
   "description": "Harness — Lean AI OS: a ferramenta que ajuda a criar outras ferramentas. Contexto por tarefa, nao por projeto (retrieval-first).",
   "bin": {
@@ -11,7 +11,6 @@
     "os": "node bin/os.mjs",
     "doctor": "node bin/os.mjs doctor",
     "mcp": "node bin/os.mjs mcp",
-    "scaffold": "node bin/os.mjs scaffold",
     "test": "node --test test/*.test.mjs"
   },
   "engines": {

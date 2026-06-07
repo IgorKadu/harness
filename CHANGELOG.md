@@ -3,6 +3,29 @@
 Todas as mudancas relevantes deste projeto. Formato baseado em Keep a Changelog;
 versionamento semantico.
 
+## [0.9.4] - 2026-06-07
+### Fixed
+- **Docs:** README atualizado (versao, ADRs 0022-0044, remocao do comando `scaffold` inexistente do inicio rapido); CHANGELOG com as entradas 0.9.1-0.9.3.
+- Removido script `scaffold` morto do `package.json`.
+
+## [0.9.3] - 2026-06-06
+### Fixed
+- **Auditoria estruturada G1-G7 (ADR-0044):** removido hook LLM morto (`setLLM`/`hasLLM`/`assist`); 2 rotas para knowledge orfao (`dont`/`lifecycle`); `files` do package enxuto (sem dotfiles de dev).
+### Added
+- +5 testes (orchestrate/phase/scan) — total 42. Smells=0. Verificados: grafo de imports, paridade CLI/MCP, integridade do indice, ADRs no decisions-index.
+
+## [0.9.2] - 2026-06-06
+### Fixed
+- **Passe de curadoria (ADR-0043):** `detectStack(PROJECT_ROOT)` corrigido; removida mensagem de extensao no `setup`; 9 imports orfaos limpos; strings do engine movidas para tools core.
+### Changed
+- Docs atualizados (README/CONNECT/AGENTS/ROADMAP).
+
+## [0.9.1] - 2026-06-06
+### Changed
+- **Superficie MCP curada (ADR-0042):** `tools/list` filtrado para ~20 tools core (demais seguem chamaveis via CLI/MCP) — overhead por sessao ~3500→2150 tk (-38%). Fonte: MCP SEP-1576.
+### Fixed
+- Conflito de passo 0 nas instrucoes: a capsula nao sobrescreve pre-requisito (bootstrap/stale/handoff).
+
 ## [0.9.0] - 2026-06-05
 ### Added
 - **Forma da tarefa + verificacao adversarial (ADR-0041)** — inspirado no Dynamic Workflows da Anthropic, sem o runtime caro de subagentes:
@@ -95,22 +118,4 @@ versionamento semantico.
 - **Memoria de sessao / chat-orquestrador:** `os_session`/`session <start|answer|status|clear>`
   conduz a conversa, persiste em `.ai/runtime/session.json` e resume entre execucoes.
 - **Extensao virou chat-orquestrador:** conversa com o usuario, estrutura e entrega o handoff
-  (copiar p/ a LLM / salvar `.ai/runtime/handoff.md`) — nao e mais um painel de botoes.
-- **CLI amigavel:** banner grafico + versao; `os setup` (detecta ambiente) e
-  `os install [claude|vscode|antigravity|all]` (escreve as configs MCP certas).
-- **`os_gaps`/`gaps`**: aponta lacunas concretas (smells, sem teste, arquivo ausente); integrado ao handoff (campo `falta`).
-- **`session resume`**: retoma a conversa; refinamento do handoff apos pronto; sessao sobrevive a troca de fase.
-- MCP agora com **19 tools**.
-
-## [0.1.0] - 2026-05-28
-### Added
-- Motor Lean / Retrieval-First (`src/engine.mjs`) com CORE ~1k tokens (ADR-0022/0023).
-- Comunicacao adaptativa por fase/maturidade: `brief`, `caps`, `phase`, `init` (ADR-0024).
-- Varredura zero-dep + code-map consultavel: `scan`, `find` (ADR-0025).
-- Operacao autonoma com "travas boas" (ADR-0026).
-- **Camada de orquestracao autoexecutavel (ADR-0027):** `os_orchestrate`/`os next` devolve
-  um pacote de interacao estruturado (classificacao, contexto, perguntas guiadas, sugestoes,
-  acoes e `awaiting`); `os_decompose`/`os decompose` quebra tarefas que estouram o orcamento.
-- **Servidor MCP** (`server/mcp.mjs`) com 16 tools (stdio, JSON-RPC, zero-dep).
-- **Extensao VSCode** (`extension/`): painel visual que consome o mesmo motor via CLI `--json`.
-- Configs de conexao para Cla
+  (copiar p/ a LLM / salvar `.ai/runtime/handoff.md`) — na
