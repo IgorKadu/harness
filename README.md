@@ -172,4 +172,4 @@ Decisões de arquitetura (ADRs 0022–0044) ficam em `.ai/specs/ADR/`. Veja tamb
 ---
 
 ## Licença
-MIT — use, faça fork, publique. Versão atual: **v0.9.3**.
+MIT — use, faça fork, publique. Versão atual: **v0.9.4**.

@@ -1,6 +1,6 @@
 # Roadmap — Harness
 
-Estado atual (**v0.9.1**): motor modular zero-dep (fachada `engine.mjs` + `src/core`/`src/modules`/`src/llm`),
+Estado atual (**v0.9.4**): motor modular zero-dep (fachada `engine.mjs` + `src/core`/`src/modules`/`src/llm`),
 três bocas (CLI/MCP/web), **núcleo curado de ~20 tools MCP** (ADR-0042), instalador interativo e
 suíte de testes (`node:test`). Ciclo completo iniciar → continuar → concluir:
 
